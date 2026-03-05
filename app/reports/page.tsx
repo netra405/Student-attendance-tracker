@@ -26,6 +26,7 @@ interface Student {
   name: string;
   rollNumber: string;
   phone?: string;
+  className: string;
 }
 
 interface ReportStats {
@@ -50,14 +51,12 @@ export default function ReportsPage() {
 
   const [reportData, setReportData] = useState<any[]>([]);
   const [studentStats, setStudentStats] = useState<Record<string, ReportStats>>({});
+  const [classes, setClasses] = useState<string[]>([]);
+  const [selectedClass, setSelectedClass] = useState<string>('');
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status]);
-
-  useEffect(() => {
-    if (session?.user) fetchReportData();
-  }, [session, month, year]);
 
   const fetchReportData = async () => {
     try {
@@ -73,8 +72,20 @@ export default function ReportsPage() {
 
       setStudents(studentsData);
 
+      const classList = Array.from(
+        new Set(studentsData.map((s) => s.className).filter(Boolean))
+      );
+      setClasses(classList);
+      setSelectedClass((prev) => prev || (classList[0] ?? ''));
+
+      const effectiveClass = selectedClass || 'all';
+      const classParam =
+        effectiveClass && effectiveClass !== 'all'
+          ? `&class=${encodeURIComponent(effectiveClass)}`
+          : '&class=all';
+
       const attendanceRes = await fetch(
-        `/api/attendance?month=${month}&year=${year}`
+        `/api/attendance?month=${month}&year=${year}${classParam}`
       );
 
       const attendanceData = await attendanceRes.json();
@@ -116,6 +127,10 @@ export default function ReportsPage() {
       }
 
       studentsData.forEach((student) => {
+        if (selectedClass && student.className !== selectedClass) {
+          return;
+        }
+
         let present = 0;
         let absent = 0;
         let leave = 0;
@@ -146,6 +161,10 @@ export default function ReportsPage() {
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    if (session?.user) fetchReportData();
+  }, [session, month, year, selectedClass]);
 
   if (status === 'loading') {
     return (
@@ -205,6 +224,23 @@ export default function ReportsPage() {
                   }}
                   label="Select Date (Bikram Sambat) — view past or upcoming month"
                 />
+
+                {classes.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-300">Class</span>
+                    <select
+                      value={selectedClass}
+                      onChange={(e) => setSelectedClass(e.target.value)}
+                      className="bg-gray-800 border border-gray-700 text-gray-100 text-sm rounded-lg px-3 py-2"
+                    >
+                      {classes.map((className) => (
+                        <option key={className} value={className}>
+                          {className}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 

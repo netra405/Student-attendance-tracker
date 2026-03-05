@@ -15,6 +15,7 @@ interface Student {
   name: string;
   rollNumber: string;
   email: string;
+  className: string;
 }
 
 type AttendanceStatus = 'present' | 'absent' | 'leave';
@@ -24,6 +25,8 @@ export default function AttendancePage() {
   const router = useRouter();
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
+  const [selectedClass, setSelectedClass] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     return d.toISOString().split('T')[0];
@@ -55,6 +58,17 @@ export default function AttendancePage() {
 
       setStudents(data);
 
+      // Derive available classes from students and auto-select one
+      const classList = Array.from(
+        new Set(
+          (data as Student[])
+            .map((student) => student.className)
+            .filter(Boolean)
+        )
+      );
+      setClasses(classList);
+      setSelectedClass((prev) => prev || (classList[0] ?? ''));
+
       // Initialize attendance state
       const initAttendance: Record<string, AttendanceStatus> = {};
 
@@ -81,7 +95,13 @@ export default function AttendancePage() {
     const d = new Date(selectedDate);
     const month = d.getMonth() + 1;
     const year = d.getFullYear();
-    fetch(`/api/attendance?month=${month}&year=${year}`)
+    const effectiveClass = selectedClass || 'all';
+    const classParam =
+      effectiveClass && effectiveClass !== 'all'
+        ? `&class=${encodeURIComponent(effectiveClass)}`
+        : '&class=all';
+
+    fetch(`/api/attendance?month=${month}&year=${year}${classParam}`)
       .then((res) => res.json())
       .then((data) => {
         const records = data.records || [];
@@ -105,7 +125,7 @@ export default function AttendancePage() {
         });
       })
       .catch(() => {});
-  }, [session?.user, selectedDate, students]);
+  }, [session?.user, selectedDate, students, selectedClass]);
 
   // Attendance status change
   const handleStatusChange = useCallback(
@@ -120,18 +140,25 @@ export default function AttendancePage() {
 
   // Bulk attendance submit (🔥 optimized version)
   const handleSubmit = async () => {
-    if (!students.length) return;
+    const visibleStudents =
+      selectedClass && selectedClass !== 'all'
+        ? students.filter((s) => s.className === selectedClass)
+        : students;
+
+    if (!visibleStudents.length) return;
 
     setLoading(true);
 
     try {
-      const records = Object.entries(attendance).map(
-        ([studentId, status]) => ({
+      const visibleIds = new Set(visibleStudents.map((s) => s._id));
+
+      const records = Object.entries(attendance)
+        .filter(([studentId]) => visibleIds.has(studentId))
+        .map(([studentId, status]) => ({
           studentId,
           status,
           date: selectedDate,
-        })
-      );
+        }));
 
       const res = await fetch('/api/attendance/bulk', {
         method: 'POST',
@@ -184,6 +211,32 @@ export default function AttendancePage() {
               Select attendance status for each student
             </p>
 
+            {/* Class Selector */}
+            {classes.length > 0 && (
+              <AnimatedCard delay={0.05}>
+                <div className='flex flex-col gap-3'>
+                  <span className='text-lg font-medium'>
+                    Select Class — mark attendance class by class
+                  </span>
+                  <div className='flex flex-wrap gap-3'>
+                    {classes.map((className) => (
+                      <button
+                        key={className}
+                        onClick={() => setSelectedClass(className)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                          selectedClass === className
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                        }`}
+                      >
+                        {className}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </AnimatedCard>
+            )}
+
             {/* Date Selector */}
             <AnimatedCard delay={0.1}>
               <div className='flex flex-col gap-3'>
@@ -197,7 +250,10 @@ export default function AttendancePage() {
 
             {/* Student List */}
             <div className='space-y-4'>
-              {students.map((student, index) => (
+              {(selectedClass
+                ? students.filter((s) => s.className === selectedClass)
+                : students
+              ).map((student, index) => (
                 <motion.div
                   key={student._id}
                   initial={{ opacity: 0, x: -20 }}
@@ -253,7 +309,14 @@ export default function AttendancePage() {
             <div className='flex justify-end pt-6'>
               <button
                 onClick={handleSubmit}
-                disabled={loading || !students.length}
+                disabled={
+                  loading ||
+                  !(
+                    selectedClass
+                      ? students.some((s) => s.className === selectedClass)
+                      : students.length
+                  )
+                }
                 className='bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-medium disabled:opacity-50'
               >
                 {loading ? 'Saving...' : '💾 Save Attendance'}
