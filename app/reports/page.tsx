@@ -14,6 +14,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 
 import Navbar from '@/components/Navbar';
@@ -38,6 +41,12 @@ interface ReportStats {
   lastMarked?: string | null;
 }
 
+interface DailySummary {
+  present: number;
+  absent: number;
+  leave: number;
+}
+
 export default function ReportsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -54,6 +63,7 @@ export default function ReportsPage() {
   const [studentStats, setStudentStats] = useState<Record<string, ReportStats>>({});
   const [classes, setClasses] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>('');
+  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -117,7 +127,8 @@ export default function ReportsPage() {
 
         if (present > 0 || absent > 0) {
           dailyData.push({
-            date: date.toLocaleDateString('en-US', {
+            date: date.toLocaleString('en-NP', {
+              timeZone: 'Asia/Kathmandu',
               month: 'short',
               day: 'numeric',
             }),
@@ -127,6 +138,7 @@ export default function ReportsPage() {
         }
       }
 
+      // Per-student stats + last marked date
       studentsData.forEach((student) => {
         if (selectedClass && student.className !== selectedClass) {
           return;
@@ -159,7 +171,8 @@ export default function ReportsPage() {
           total,
           percentage: total ? Number(((present / total) * 100).toFixed(2)) : 0,
           lastMarked: lastMarked
-            ? lastMarked.toLocaleDateString('en-US', {
+            ? lastMarked.toLocaleString('en-NP', {
+                timeZone: 'Asia/Kathmandu',
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
@@ -171,6 +184,33 @@ export default function ReportsPage() {
       setReportData(dailyData);
       setStudentStats(stats);
 
+      // Daily summary for the selected date (Nepal time based on AD ISO)
+      if (selectedDate) {
+        let dayPresent = 0;
+        let dayAbsent = 0;
+        let dayLeave = 0;
+
+        records.forEach((record: any) => {
+          const recordIso = new Date(record.date)
+            .toISOString()
+            .split('T')[0];
+
+          if (recordIso === selectedDate) {
+            if (record.status === 'present') dayPresent++;
+            else if (record.status === 'absent') dayAbsent++;
+            else if (record.status === 'leave') dayLeave++;
+          }
+        });
+
+        setDailySummary({
+          present: dayPresent,
+          absent: dayAbsent,
+          leave: dayLeave,
+        });
+      } else {
+        setDailySummary(null);
+      }
+
     } catch (error) {
       console.error(error);
     }
@@ -178,7 +218,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (session?.user) fetchReportData();
-  }, [session, month, year, selectedClass]);
+  }, [session, month, year, selectedClass, selectedDate]);
 
   if (status === 'loading') {
     return (
@@ -205,6 +245,28 @@ export default function ReportsPage() {
       };
     }
   );
+
+  const dailyTotal =
+    dailySummary
+      ? dailySummary.present + dailySummary.absent + dailySummary.leave
+      : 0;
+
+  const pieData = dailySummary
+    ? [
+        { name: 'Present', value: dailySummary.present, color: '#22c55e' },
+        { name: 'Absent', value: dailySummary.absent, color: '#ef4444' },
+        { name: 'Leave', value: dailySummary.leave, color: '#eab308' },
+      ]
+    : [];
+
+  const selectedDateLabel = selectedDate
+    ? new Date(selectedDate).toLocaleString('en-NP', {
+        timeZone: 'Asia/Kathmandu',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : '';
 
   return (
     <div className="flex h-screen bg-gray-900 overflow-hidden">
@@ -291,6 +353,62 @@ export default function ReportsPage() {
                 </ResponsiveContainer>
               </div>
             </AnimatedCard>
+
+            {/* Pie Chart for selected date (Nepal time) */}
+            {dailyTotal > 0 && (
+              <AnimatedCard>
+                <h2 className="text-xl md:text-2xl font-bold mb-1">
+                  Attendance Breakdown — {selectedDateLabel} (Nepal time)
+                </h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  This pie chart shows how many students were present, absent, or on leave on the date selected in the calendar.
+                </p>
+
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-full md:w-1/2 h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={90}
+                          innerRadius={40}
+                          paddingAngle={3}
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={index} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="w-full md:w-1/2 space-y-3">
+                    {pieData.map((entry) => (
+                      <div
+                        key={entry.name}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-block h-3 w-3 rounded-full"
+                            style={{ backgroundColor: entry.color }}
+                          />
+                          <span className="text-gray-200">{entry.name}</span>
+                        </div>
+                        <span className="font-semibold text-gray-100">
+                          {entry.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </AnimatedCard>
+            )}
 
             {/* Table → Card View Mobile Responsive */}
             <AnimatedCard>
