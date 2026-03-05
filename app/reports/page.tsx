@@ -226,20 +226,32 @@ export default function ReportsPage() {
                 />
 
                 {classes.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-300">Class</span>
-                    <select
-                      value={selectedClass}
-                      onChange={(e) => setSelectedClass(e.target.value)}
-                      className="bg-gray-800 border border-gray-700 text-gray-100 text-sm rounded-lg px-3 py-2"
-                    >
-                      {classes.map((className) => (
-                        <option key={className} value={className}>
-                          {className}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <AnimatedCard>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-xs uppercase tracking-wide text-gray-400">
+                        Choose Class
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {classes.map((className) => {
+                          const isActive = selectedClass === className;
+                          return (
+                            <button
+                              key={className}
+                              type="button"
+                              onClick={() => setSelectedClass(className)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                                isActive
+                                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-md shadow-blue-500/30'
+                                  : 'bg-gray-800/80 text-gray-200 border-gray-700 hover:bg-gray-700'
+                              }`}
+                            >
+                              {className}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </AnimatedCard>
                 )}
               </div>
             </div>

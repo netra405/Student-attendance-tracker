@@ -263,13 +263,18 @@ export default function AttendancePage() {
                   <AnimatedCard delay={0.1 + index * 0.03}>
                     <div className='flex flex-col md:flex-row md:justify-between md:items-center gap-4'>
 
-                      <div>
-                        <h3 className='text-lg font-bold text-white'>
-                          {student.name}
-                        </h3>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex items-center justify-center rounded-full bg-blue-600/20 border border-blue-500/60 px-3 py-1 text-xs font-semibold text-blue-200">
+                            Roll #{student.rollNumber}
+                          </span>
+                          <h3 className='text-lg font-bold text-white'>
+                            {student.name}
+                          </h3>
+                        </div>
 
-                        <p className="text-gray-300 text-sm">
-                          {student.rollNumber} • {student.email}
+                        <p className="text-gray-400 text-xs md:text-sm">
+                          {student.email}
                         </p>
                       </div>
 
