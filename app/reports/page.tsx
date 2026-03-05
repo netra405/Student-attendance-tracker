@@ -280,9 +280,12 @@ export default function ReportsPage() {
 
             {/* Table → Card View Mobile Responsive */}
             <AnimatedCard>
-              <h2 className="text-xl md:text-2xl font-bold mb-4">
-                Attendance Percentage Report
+              <h2 className="text-xl md:text-2xl font-bold mb-1">
+                Attendance Summary by Student
               </h2>
+              <p className="text-sm text-gray-400 mb-4">
+                See how many days each student was present, absent, or on leave this month, plus risk status.
+              </p>
 
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm md:text-base">
@@ -292,8 +295,8 @@ export default function ReportsPage() {
                       <th className="py-3 px-4">Present</th>
                       <th className="py-3 px-4">Absent</th>
                       <th className="py-3 px-4">Leave</th>
-                      <th className="py-3 px-4">Total</th>
-                      <th className="py-3 px-4">Percentage</th>
+                      <th className="py-3 px-4">Days Missed</th>
+                      <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4">Call</th>
                     </tr>
                   </thead>
@@ -307,8 +310,28 @@ export default function ReportsPage() {
                         <td className="py-3 px-4 text-green-500">{row.presentCount}</td>
                         <td className="py-3 px-4 text-red-500">{row.absentCount}</td>
                         <td className="py-3 px-4 text-yellow-500">{row.leaveCount}</td>
-                        <td className="py-3 px-4">{row.total}</td>
-                        <td className="py-3 px-4">{row.percentage}%</td>
+                        <td className="py-3 px-4 text-orange-400">
+                          {row.absentCount + row.leaveCount}
+                        </td>
+                        <td className="py-3 px-4">
+                          {row.total === 0 ? (
+                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-300">
+                              No data
+                            </span>
+                          ) : row.percentage >= 90 ? (
+                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/50">
+                              Excellent
+                            </span>
+                          ) : row.percentage >= 75 ? (
+                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-yellow-600/20 text-yellow-400 border border-yellow-500/50">
+                              Watch
+                            </span>
+                          ) : (
+                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/50">
+                              At risk
+                            </span>
+                          )}
+                        </td>
 
                         <td className="py-3 px-4">
                           {row.phone && (
@@ -336,12 +359,18 @@ export default function ReportsPage() {
                       <div>✅ Present: {row.presentCount}</div>
                       <div>❌ Absent: {row.absentCount}</div>
                       <div>📋 Leave: {row.leaveCount}</div>
-                      <div>📊 Total: {row.total}</div>
+                      <div>🚫 Missed: {row.absentCount + row.leaveCount}</div>
                     </div>
 
                     <div className="flex justify-between items-center pt-2">
-                      <span className="font-semibold">
-                        {row.percentage}%
+                      <span className="text-xs font-semibold">
+                        {row.total === 0
+                          ? 'No data'
+                          : row.percentage >= 90
+                          ? 'Excellent attendance'
+                          : row.percentage >= 75
+                          ? 'Needs attention'
+                          : 'At risk'}
                       </span>
 
                       {row.phone && (
