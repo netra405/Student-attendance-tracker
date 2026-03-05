@@ -224,37 +224,37 @@ export default function ReportsPage() {
                   }}
                   label="Select Date (Bikram Sambat) — view past or upcoming month"
                 />
-
-                {classes.length > 0 && (
-                  <AnimatedCard>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs uppercase tracking-wide text-gray-400">
-                        Choose Class
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {classes.map((className) => {
-                          const isActive = selectedClass === className;
-                          return (
-                            <button
-                              key={className}
-                              type="button"
-                              onClick={() => setSelectedClass(className)}
-                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                                isActive
-                                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-md shadow-blue-500/30'
-                                  : 'bg-gray-800/80 text-gray-200 border-gray-700 hover:bg-gray-700'
-                              }`}
-                            >
-                              {className}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </AnimatedCard>
-                )}
               </div>
             </div>
+
+            {classes.length > 0 && (
+              <AnimatedCard>
+                <div className="flex flex-col gap-3">
+                  <span className="text-sm md:text-base font-semibold text-gray-100">
+                    Choose Class
+                  </span>
+                  <div className="flex flex-wrap gap-3">
+                    {classes.map((className) => {
+                      const isActive = selectedClass === className;
+                      return (
+                        <button
+                          key={className}
+                          type="button"
+                          onClick={() => setSelectedClass(className)}
+                          className={`px-4 md:px-6 py-2 md:py-2.5 rounded-full text-sm md:text-base font-semibold transition-all border ${
+                            isActive
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg shadow-blue-500/40 scale-[1.02]'
+                              : 'bg-gray-800/90 text-gray-200 border-gray-700 hover:bg-gray-700 hover:border-gray-500'
+                          }`}
+                        >
+                          {className}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </AnimatedCard>
+            )}
 
             {/* Chart */}
             <AnimatedCard>
