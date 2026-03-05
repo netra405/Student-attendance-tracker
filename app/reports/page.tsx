@@ -35,6 +35,7 @@ interface ReportStats {
   leaveCount: number;
   total: number;
   percentage: number;
+  lastMarked?: string | null;
 }
 
 export default function ReportsPage() {
@@ -134,9 +135,15 @@ export default function ReportsPage() {
         let present = 0;
         let absent = 0;
         let leave = 0;
+        let lastMarked: Date | null = null;
 
         records.forEach((record: any) => {
           if (record.studentId?._id === student._id) {
+            const recordDate = new Date(record.date);
+            if (!lastMarked || recordDate > lastMarked) {
+              lastMarked = recordDate;
+            }
+
             if (record.status === 'present') present++;
             else if (record.status === 'absent') absent++;
             else if (record.status === 'leave') leave++;
@@ -151,6 +158,13 @@ export default function ReportsPage() {
           leaveCount: leave,
           total,
           percentage: total ? Number(((present / total) * 100).toFixed(2)) : 0,
+          lastMarked: lastMarked
+            ? lastMarked.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : null,
         };
       });
 
@@ -284,7 +298,7 @@ export default function ReportsPage() {
                 Attendance Summary by Student
               </h2>
               <p className="text-sm text-gray-400 mb-4">
-                See how many days each student was present, absent, or on leave this month, plus risk status.
+                See how many days each student was present, absent, or on leave this month, plus the last date their attendance was updated.
               </p>
 
               <div className="hidden md:block overflow-x-auto">
@@ -295,8 +309,7 @@ export default function ReportsPage() {
                       <th className="py-3 px-4">Present</th>
                       <th className="py-3 px-4">Absent</th>
                       <th className="py-3 px-4">Leave</th>
-                      <th className="py-3 px-4">Days Missed</th>
-                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Last Marked</th>
                       <th className="py-3 px-4">Call</th>
                     </tr>
                   </thead>
@@ -310,27 +323,8 @@ export default function ReportsPage() {
                         <td className="py-3 px-4 text-green-500">{row.presentCount}</td>
                         <td className="py-3 px-4 text-red-500">{row.absentCount}</td>
                         <td className="py-3 px-4 text-yellow-500">{row.leaveCount}</td>
-                        <td className="py-3 px-4 text-orange-400">
-                          {row.absentCount + row.leaveCount}
-                        </td>
-                        <td className="py-3 px-4">
-                          {row.total === 0 ? (
-                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-300">
-                              No data
-                            </span>
-                          ) : row.percentage >= 90 ? (
-                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/50">
-                              Excellent
-                            </span>
-                          ) : row.percentage >= 75 ? (
-                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-yellow-600/20 text-yellow-400 border border-yellow-500/50">
-                              Watch
-                            </span>
-                          ) : (
-                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/50">
-                              At risk
-                            </span>
-                          )}
+                        <td className="py-3 px-4 text-blue-300">
+                          {row.lastMarked || 'Not marked yet'}
                         </td>
 
                         <td className="py-3 px-4">
@@ -359,19 +353,10 @@ export default function ReportsPage() {
                       <div>✅ Present: {row.presentCount}</div>
                       <div>❌ Absent: {row.absentCount}</div>
                       <div>📋 Leave: {row.leaveCount}</div>
-                      <div>🚫 Missed: {row.absentCount + row.leaveCount}</div>
+                      <div>🕒 Last marked: {row.lastMarked || 'Not marked yet'}</div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-2">
-                      <span className="text-xs font-semibold">
-                        {row.total === 0
-                          ? 'No data'
-                          : row.percentage >= 90
-                          ? 'Excellent attendance'
-                          : row.percentage >= 75
-                          ? 'Needs attention'
-                          : 'At risk'}
-                      </span>
+                    <div className="flex justify-end items-center pt-2">
 
                       {row.phone && (
                         <a href={`tel:${row.phone}`}
