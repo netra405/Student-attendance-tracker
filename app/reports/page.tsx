@@ -171,12 +171,12 @@ export default function ReportsPage() {
           total,
           percentage: total ? Number(((present / total) * 100).toFixed(2)) : 0,
           lastMarked: lastMarked
-            ? lastMarked.toLocaleString('en-NP', {
-                timeZone: 'Asia/Kathmandu',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })
+            ? (lastMarked as Date).toLocaleString('en-NP', {
+              timeZone: 'Asia/Kathmandu',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
             : null,
         };
       });
@@ -253,19 +253,19 @@ export default function ReportsPage() {
 
   const pieData = dailySummary
     ? [
-        { name: 'Present', value: dailySummary.present, color: '#22c55e' },
-        { name: 'Absent', value: dailySummary.absent, color: '#ef4444' },
-        { name: 'Leave', value: dailySummary.leave, color: '#eab308' },
-      ]
+      { name: 'Present', value: dailySummary.present, color: '#22c55e' },
+      { name: 'Absent', value: dailySummary.absent, color: '#ef4444' },
+      { name: 'Leave', value: dailySummary.leave, color: '#eab308' },
+    ]
     : [];
 
   const selectedDateLabel = selectedDate
     ? new Date(selectedDate).toLocaleString('en-NP', {
-        timeZone: 'Asia/Kathmandu',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
+      timeZone: 'Asia/Kathmandu',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
     : '';
 
   return (
@@ -317,11 +317,10 @@ export default function ReportsPage() {
                           key={className}
                           type="button"
                           onClick={() => setSelectedClass(className)}
-                          className={`px-4 md:px-6 py-2 md:py-2.5 rounded-full text-sm md:text-base font-semibold transition-all border ${
-                            isActive
+                          className={`px-4 md:px-6 py-2 md:py-2.5 rounded-full text-sm md:text-base font-semibold transition-all border ${isActive
                               ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg shadow-blue-500/40 scale-[1.02]'
                               : 'bg-gray-800/90 text-gray-200 border-gray-700 hover:bg-gray-700 hover:border-gray-500'
-                          }`}
+                            }`}
                         >
                           {className}
                         </button>
