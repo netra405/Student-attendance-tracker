@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { ADToBS } from 'bikram-sambat-js';
 
 import {
   LineChart,
@@ -24,6 +25,25 @@ import Sidebar from '@/components/Sidebar';
 import AnimatedCard from '@/components/AnimatedCard';
 import Calendar from '@/components/Calendar';
 
+const BS_MONTHS = [
+  'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
+  'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra',
+];
+
+function adToBSFormatted(date: Date): string {
+  try {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const iso = `${y}-${m}-${d}`;
+    const bs = ADToBS(iso);
+    const [by, bm, bd] = bs.split('-').map(Number);
+    return `${BS_MONTHS[bm - 1]} ${bd}, ${by}`;
+  } catch {
+    return '';
+  }
+}
+
 interface Student {
   _id: string;
   name: string;
@@ -32,13 +52,16 @@ interface Student {
   className: string;
 }
 
+type TodayStatus = 'present' | 'absent' | 'leave' | null;
+
 interface ReportStats {
   presentCount: number;
   absentCount: number;
   leaveCount: number;
   total: number;
   percentage: number;
-  lastMarked?: string | null;
+  todayStatus: TodayStatus;
+  lastMarkedBS: string | null;
 }
 
 interface DailySummary {
@@ -138,7 +161,7 @@ export default function ReportsPage() {
         }
       }
 
-      // Per-student stats + last marked date
+      // Per-student stats: today's status, last marked (BS), monthly counts for pie
       studentsData.forEach((student) => {
         if (selectedClass && student.className !== selectedClass) {
           return;
@@ -147,19 +170,26 @@ export default function ReportsPage() {
         let present = 0;
         let absent = 0;
         let leave = 0;
-        let lastMarked: Date | null = null;
+        let lastMarkedDate: Date | null = null;
+        let todayStatus: TodayStatus = null;
 
         records.forEach((record: any) => {
-          if (record.studentId?._id === student._id) {
-            const recordDate = new Date(record.date);
-            if (!lastMarked || recordDate > lastMarked) {
-              lastMarked = recordDate;
-            }
+          if (record.studentId?._id !== student._id) return;
 
-            if (record.status === 'present') present++;
-            else if (record.status === 'absent') absent++;
-            else if (record.status === 'leave') leave++;
+          const recordDate = new Date(record.date);
+          const recordIso = recordDate.toISOString().split('T')[0];
+
+          if (recordIso === selectedDate) {
+            todayStatus = record.status as TodayStatus;
           }
+
+          if (!lastMarkedDate || recordDate > lastMarkedDate) {
+            lastMarkedDate = recordDate;
+          }
+
+          if (record.status === 'present') present++;
+          else if (record.status === 'absent') absent++;
+          else if (record.status === 'leave') leave++;
         });
 
         const total = present + absent + leave;
@@ -170,14 +200,8 @@ export default function ReportsPage() {
           leaveCount: leave,
           total,
           percentage: total ? Number(((present / total) * 100).toFixed(2)) : 0,
-          lastMarked: lastMarked
-            ? (lastMarked as Date).toLocaleString('en-NP', {
-              timeZone: 'Asia/Kathmandu',
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })
-            : null,
+          todayStatus,
+          lastMarkedBS: lastMarkedDate ? adToBSFormatted(lastMarkedDate) : null,
         };
       });
 
@@ -235,12 +259,18 @@ export default function ReportsPage() {
   }
 
   const reportRows = Object.entries(studentStats).map(
-    ([name, stats]: [string, any]) => {
+    ([name, stats]: [string, ReportStats]) => {
       const student = students.find(s => s.name === name);
+      const pieData = [
+        { name: 'Present', value: stats.presentCount, color: '#22c55e' },
+        { name: 'Absent', value: stats.absentCount, color: '#ef4444' },
+        { name: 'Leave', value: stats.leaveCount, color: '#eab308' },
+      ].filter((d) => d.value > 0);
 
       return {
         name,
         phone: student?.phone || '',
+        pieData,
         ...stats,
       };
     }
@@ -409,13 +439,13 @@ export default function ReportsPage() {
               </AnimatedCard>
             )}
 
-            {/* Table → Card View Mobile Responsive */}
+            {/* Attendance Summary by Student — today's status, month pie, last marked (BS) */}
             <AnimatedCard>
               <h2 className="text-xl md:text-2xl font-bold mb-1">
                 Attendance Summary by Student
               </h2>
               <p className="text-sm text-gray-400 mb-4">
-                See how many days each student was present, absent, or on leave this month, plus the last date their attendance was updated.
+                Selected date ({selectedDate ? adToBSFormatted(new Date(selectedDate)) : '—'}) status: Present, Absent, or Leave. Last marked in BS calendar. Small pie shows this month&apos;s breakdown.
               </p>
 
               <div className="hidden md:block overflow-x-auto">
@@ -423,10 +453,9 @@ export default function ReportsPage() {
                   <thead>
                     <tr className="border-b border-gray-700">
                       <th className="py-3 px-4">Student</th>
-                      <th className="py-3 px-4">Present</th>
-                      <th className="py-3 px-4">Absent</th>
-                      <th className="py-3 px-4">Leave</th>
-                      <th className="py-3 px-4">Last Marked</th>
+                      <th className="py-3 px-4">Today&apos;s Status</th>
+                      <th className="py-3 px-4">Month Result</th>
+                      <th className="py-3 px-4">Last Marked (BS)</th>
                       <th className="py-3 px-4">Call</th>
                     </tr>
                   </thead>
@@ -436,14 +465,60 @@ export default function ReportsPage() {
                       <tr key={row.name}
                         className="border-b border-gray-700 hover:bg-gray-800 transition"
                       >
-                        <td className="py-3 px-4">{row.name}</td>
-                        <td className="py-3 px-4 text-green-500">{row.presentCount}</td>
-                        <td className="py-3 px-4 text-red-500">{row.absentCount}</td>
-                        <td className="py-3 px-4 text-yellow-500">{row.leaveCount}</td>
-                        <td className="py-3 px-4 text-blue-300">
-                          {row.lastMarked || 'Not marked yet'}
+                        <td className="py-3 px-4 font-medium">{row.name}</td>
+                        <td className="py-3 px-4">
+                          {row.todayStatus === 'present' && (
+                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-green-600/30 text-green-400 border border-green-500/50">
+                              ✅ Present
+                            </span>
+                          )}
+                          {row.todayStatus === 'absent' && (
+                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-red-600/30 text-red-400 border border-red-500/50">
+                              ❌ Absent
+                            </span>
+                          )}
+                          {row.todayStatus === 'leave' && (
+                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-yellow-600/30 text-yellow-400 border border-yellow-500/50">
+                              📋 Leave
+                            </span>
+                          )}
+                          {!row.todayStatus && (
+                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-gray-400">
+                              Not marked
+                            </span>
+                          )}
                         </td>
-
+                        <td className="py-3 px-4">
+                          <div className="w-14 h-14">
+                            {row.pieData.length > 0 ? (
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={row.pieData}
+                                    dataKey="value"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={22}
+                                    innerRadius={8}
+                                    paddingAngle={2}
+                                  >
+                                    {row.pieData.map((entry, i) => (
+                                      <Cell key={i} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            ) : (
+                              <div className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center text-[10px] text-gray-500">
+                                —
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-blue-300 text-sm">
+                          {row.lastMarkedBS || 'Not marked yet'}
+                        </td>
                         <td className="py-3 px-4">
                           {row.phone && (
                             <a href={`tel:${row.phone}`}
@@ -460,27 +535,67 @@ export default function ReportsPage() {
 
               {/* Mobile Card View */}
               <div className="md:hidden space-y-4">
-                {reportRows.map(row => (
+                {reportRows.map((row) => (
                   <div key={row.name}
-                    className="bg-gray-800 p-4 rounded-xl space-y-2"
+                    className="bg-gray-800 p-4 rounded-xl space-y-3"
                   >
-                    <div className="font-semibold text-lg">{row.name}</div>
-
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>✅ Present: {row.presentCount}</div>
-                      <div>❌ Absent: {row.absentCount}</div>
-                      <div>📋 Leave: {row.leaveCount}</div>
-                      <div>🕒 Last marked: {row.lastMarked || 'Not marked yet'}</div>
-                    </div>
-
-                    <div className="flex justify-end items-center pt-2">
-
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold text-lg">{row.name}</div>
                       {row.phone && (
                         <a href={`tel:${row.phone}`}
                           className="bg-green-500 px-3 py-1 rounded-lg text-sm text-white">
                           📞 Call
                         </a>
                       )}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="text-xs text-gray-400 mb-1">Today</div>
+                        {row.todayStatus === 'present' && (
+                          <span className="inline-flex px-2 py-0.5 rounded text-sm font-medium bg-green-600/30 text-green-400">✅ Present</span>
+                        )}
+                        {row.todayStatus === 'absent' && (
+                          <span className="inline-flex px-2 py-0.5 rounded text-sm font-medium bg-red-600/30 text-red-400">❌ Absent</span>
+                        )}
+                        {row.todayStatus === 'leave' && (
+                          <span className="inline-flex px-2 py-0.5 rounded text-sm font-medium bg-yellow-600/30 text-yellow-400">📋 Leave</span>
+                        )}
+                        {!row.todayStatus && (
+                          <span className="text-sm text-gray-500">Not marked</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="w-12 h-12">
+                          {row.pieData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={row.pieData}
+                                  dataKey="value"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={18}
+                                  innerRadius={6}
+                                  paddingAngle={2}
+                                >
+                                  {row.pieData.map((entry, i) => (
+                                    <Cell key={i} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <div className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center text-[10px] text-gray-500">—</div>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          <div>Month</div>
+                          <div className="text-blue-300">{row.lastMarkedBS || '—'}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
