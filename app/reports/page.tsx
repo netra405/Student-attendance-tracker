@@ -468,22 +468,26 @@ export default function ReportsPage() {
                         <td className="py-3 px-4 font-medium">{row.name}</td>
                         <td className="py-3 px-4">
                           {row.todayStatus === 'present' && (
-                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-green-600/30 text-green-400 border border-green-500/50">
-                              ✅ Present
+                            <span className="inline-flex items-center gap-2 text-sm font-medium text-green-500">
+                              <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                              Present
                             </span>
                           )}
                           {row.todayStatus === 'absent' && (
-                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-red-600/30 text-red-400 border border-red-500/50">
-                              ❌ Absent
+                            <span className="inline-flex items-center gap-2 text-sm font-medium text-red-500">
+                              <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                              Absent
                             </span>
                           )}
                           {row.todayStatus === 'leave' && (
-                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-yellow-600/30 text-yellow-400 border border-yellow-500/50">
-                              📋 Leave
+                            <span className="inline-flex items-center gap-2 text-sm font-medium text-amber-400">
+                              <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+                              Leave
                             </span>
                           )}
                           {!row.todayStatus && (
-                            <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-gray-400">
+                            <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
+                              <span className="h-2 w-2 rounded-full bg-gray-500 shrink-0" />
                               Not marked
                             </span>
                           )}
@@ -553,16 +557,28 @@ export default function ReportsPage() {
                       <div>
                         <div className="text-xs text-gray-400 mb-1">Today</div>
                         {row.todayStatus === 'present' && (
-                          <span className="inline-flex px-2 py-0.5 rounded text-sm font-medium bg-green-600/30 text-green-400">✅ Present</span>
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-green-500">
+                            <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                            Present
+                          </span>
                         )}
                         {row.todayStatus === 'absent' && (
-                          <span className="inline-flex px-2 py-0.5 rounded text-sm font-medium bg-red-600/30 text-red-400">❌ Absent</span>
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-red-500">
+                            <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                            Absent
+                          </span>
                         )}
                         {row.todayStatus === 'leave' && (
-                          <span className="inline-flex px-2 py-0.5 rounded text-sm font-medium bg-yellow-600/30 text-yellow-400">📋 Leave</span>
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-amber-400">
+                            <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+                            Leave
+                          </span>
                         )}
                         {!row.todayStatus && (
-                          <span className="text-sm text-gray-500">Not marked</span>
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
+                            <span className="h-2 w-2 rounded-full bg-gray-500 shrink-0" />
+                            Not marked
+                          </span>
                         )}
                       </div>
 
