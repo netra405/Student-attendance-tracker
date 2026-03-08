@@ -174,10 +174,12 @@ export default function ReportsPage() {
         let todayStatus: TodayStatus = null;
 
         records.forEach((record: any) => {
-          if (record.studentId?._id !== student._id) return;
+          const recordStudentId = record.studentId?._id ?? record.studentId;
+          if (!recordStudentId || String(recordStudentId) !== String(student._id)) return;
 
-          const recordDate = new Date(record.date);
-          const recordIso = recordDate.toISOString().split('T')[0];
+          const recordDate = record.date ? new Date(record.date) : null;
+          if (!recordDate || isNaN(recordDate.getTime())) return;
+          const recordIso = recordDate.toISOString().slice(0, 10);
 
           if (recordIso === selectedDate) {
             todayStatus = record.status as TodayStatus;
@@ -215,9 +217,9 @@ export default function ReportsPage() {
         let dayLeave = 0;
 
         records.forEach((record: any) => {
-          const recordIso = new Date(record.date)
-            .toISOString()
-            .split('T')[0];
+          const d = record.date ? new Date(record.date) : null;
+          if (!d || isNaN(d.getTime())) return;
+          const recordIso = d.toISOString().slice(0, 10);
 
           if (recordIso === selectedDate) {
             if (record.status === 'present') dayPresent++;
