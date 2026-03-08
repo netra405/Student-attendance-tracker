@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
       teacherId: session.user.id,
     });
 
-    const attendanceDate = new Date(date);
-    attendanceDate.setHours(0, 0, 0, 0);
+    // Store as UTC midnight so calendar date (YYYY-MM-DD) matches everywhere
+    const attendanceDate = new Date(date.includes('T') ? date : `${date}T00:00:00.000Z`);
 
     if (!attendance) {
       attendance = await Attendance.create({
@@ -122,10 +122,12 @@ export async function POST(request: NextRequest) {
         ],
       });
     } else {
+      const newDay = attendanceDate.toISOString().slice(0, 10);
       const existingIndex = attendance.records.findIndex(
-        (r: any) =>
-          r.studentId.toString() === studentId &&
-          new Date(r.date).getTime() === attendanceDate.getTime()
+        (r: any) => {
+          const rDay = new Date(r.date).toISOString().slice(0, 10);
+          return r.studentId.toString() === studentId && rDay === newDay;
+        }
       );
 
       if (existingIndex >= 0) {

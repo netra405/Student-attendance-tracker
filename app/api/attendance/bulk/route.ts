@@ -45,13 +45,16 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const attendanceDate = new Date(date);
-      attendanceDate.setHours(0, 0, 0, 0);
+      // Store as UTC midnight so calendar date (YYYY-MM-DD) matches everywhere
+      const attendanceDate = new Date(date.includes('T') ? date : `${date}T00:00:00.000Z`);
 
       const existingIndex = attendance.records.findIndex(
-        (r: any) =>
-          r.studentId.toString() === studentId &&
-          new Date(r.date).getTime() === attendanceDate.getTime()
+        (r: any) => {
+          const rDate = new Date(r.date);
+          const rDay = rDate.toISOString().slice(0, 10);
+          const newDay = attendanceDate.toISOString().slice(0, 10);
+          return r.studentId.toString() === studentId && rDay === newDay;
+        }
       );
 
       if (existingIndex >= 0) {

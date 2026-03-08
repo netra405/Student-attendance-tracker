@@ -180,8 +180,10 @@ export default function ReportsPage() {
           const recordDate = record.date ? new Date(record.date) : null;
           if (!recordDate || isNaN(recordDate.getTime())) return;
           const recordIso = recordDate.toISOString().slice(0, 10);
+          const recordNepal = recordDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kathmandu' });
+          const matchesSelectedDate = recordIso === selectedDate || recordNepal === selectedDate;
 
-          if (recordIso === selectedDate) {
+          if (matchesSelectedDate) {
             todayStatus = record.status as TodayStatus;
           }
 
@@ -220,8 +222,10 @@ export default function ReportsPage() {
           const d = record.date ? new Date(record.date) : null;
           if (!d || isNaN(d.getTime())) return;
           const recordIso = d.toISOString().slice(0, 10);
+          const recordNepal = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kathmandu' });
+          const matches = recordIso === selectedDate || recordNepal === selectedDate;
 
-          if (recordIso === selectedDate) {
+          if (matches) {
             if (record.status === 'present') dayPresent++;
             else if (record.status === 'absent') dayAbsent++;
             else if (record.status === 'leave') dayLeave++;
