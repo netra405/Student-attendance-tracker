@@ -304,6 +304,8 @@ export default function ReportsPage() {
     })
     : '';
 
+  const selectedDateBS = selectedDate ? adToBSFormatted(new Date(selectedDate)) : '';
+
   return (
     <div className="flex h-screen bg-gray-900 overflow-hidden">
 
@@ -389,11 +391,11 @@ export default function ReportsPage() {
               </div>
             </AnimatedCard>
 
-            {/* Pie Chart for selected date (Nepal time) */}
+            {/* Pie Chart for selected date (Bikram Sambat) */}
             {dailyTotal > 0 && (
               <AnimatedCard>
                 <h2 className="text-xl md:text-2xl font-bold mb-1">
-                  Attendance Breakdown — {selectedDateLabel} (Nepal time)
+                  Attendance Breakdown — {selectedDateBS} (BS)
                 </h2>
                 <p className="text-sm text-gray-400 mb-4">
                   This pie chart shows how many students were present, absent, or on leave on the date selected in the calendar.
