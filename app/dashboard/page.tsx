@@ -84,14 +84,13 @@ export default function DashboardPage() {
       const attendanceResult = await attendanceRes.json();
       const records = attendanceResult.records || [];
 
-      // Today Attendance
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Today Attendance (compare by ISO date string to avoid timezone issues)
+      const todayIso = new Date().toISOString().slice(0, 10);
 
       const todayRecords = records.filter((r: any) => {
-        const recordDate = new Date(r.date);
-        recordDate.setHours(0, 0, 0, 0);
-        return recordDate.getTime() === today.getTime();
+        if (!r.date) return false;
+        const recordIso = new Date(r.date).toISOString().slice(0, 10);
+        return recordIso === todayIso;
       });
 
       const presentCount = todayRecords.filter(
@@ -112,31 +111,30 @@ export default function DashboardPage() {
         absentToday: absentCount,
       });
 
-      // Weekly Chart
+      // Weekly Chart (last 7 days using ISO date comparison)
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        d.setHours(0, 0, 0, 0);
-        return d;
+        const iso = d.toISOString().slice(0, 10);
+        const label = d.toLocaleDateString('en-NP', {
+          month: 'short',
+          day: 'numeric',
+        });
+        return { iso, label };
       }).reverse();
 
-      const weeklyData = last7Days.map((date) => {
-
+      const weeklyData = last7Days.map(({ iso, label }) => {
         const dayRecords = records.filter((r: any) => {
-          const recordDate = new Date(r.date);
-          recordDate.setHours(0, 0, 0, 0);
-          return recordDate.getTime() === date.getTime();
+          if (!r.date) return false;
+          const recordIso = new Date(r.date).toISOString().slice(0, 10);
+          return recordIso === iso;
         });
 
         return {
-          name: date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-          }),
+          name: label,
           present: dayRecords.filter((r: any) => r.status === 'present').length,
           absent: dayRecords.filter((r: any) => r.status === 'absent').length,
         };
-
       });
 
       setChartData(weeklyData);
