@@ -62,6 +62,9 @@ interface ReportStats {
   percentage: number;
   todayStatus: TodayStatus;
   lastMarkedBS: string | null;
+  yearlyPresent?: number;
+  yearlyAbsent?: number;
+  yearlyLeave?: number;
 }
 
 interface DailySummary {
@@ -124,6 +127,46 @@ export default function ReportsPage() {
 
       const attendanceData = await attendanceRes.json();
       const records = attendanceData.records || [];
+
+      // Yearly stats for each student (current year, same class filter)
+      const yearlyClassParam =
+        effectiveClass && effectiveClass !== 'all'
+          ? `&class=${encodeURIComponent(effectiveClass)}`
+          : '&class=all';
+
+      const yearlyRes = await fetch(
+        `/api/attendance?year=${year}${yearlyClassParam}`
+      );
+      const yearlyData = await yearlyRes.json();
+      const yearlyRecords = yearlyData.records || [];
+
+      const yearlyStatsMap: Record<
+        string,
+        { present: number; absent: number; leave: number }
+      > = {};
+
+      yearlyRecords.forEach((record: any) => {
+        const recordStudentId = record.studentId?._id ?? record.studentId;
+        if (!recordStudentId) return;
+
+        const student = studentsData.find(
+          (s) => String(s._id) === String(recordStudentId)
+        );
+        if (!student) return;
+
+        if (selectedClass && student.className !== selectedClass) {
+          return;
+        }
+
+        const key = student.name;
+        if (!yearlyStatsMap[key]) {
+          yearlyStatsMap[key] = { present: 0, absent: 0, leave: 0 };
+        }
+
+        if (record.status === 'present') yearlyStatsMap[key].present++;
+        else if (record.status === 'absent') yearlyStatsMap[key].absent++;
+        else if (record.status === 'leave') yearlyStatsMap[key].leave++;
+      });
 
       const stats: Record<string, ReportStats> = {};
       const dailyData: any[] = [];
@@ -206,6 +249,9 @@ export default function ReportsPage() {
           percentage: total ? Number(((present / total) * 100).toFixed(2)) : 0,
           todayStatus,
           lastMarkedBS: lastMarkedDate ? adToBSFormatted(lastMarkedDate) : null,
+          yearlyPresent: yearlyStatsMap[student.name]?.present ?? 0,
+          yearlyAbsent: yearlyStatsMap[student.name]?.absent ?? 0,
+          yearlyLeave: yearlyStatsMap[student.name]?.leave ?? 0,
         };
       });
 
@@ -463,6 +509,7 @@ export default function ReportsPage() {
                       <th className="py-3 px-4">Student</th>
                       <th className="py-3 px-4">Today&apos;s Status</th>
                       <th className="py-3 px-4">Month Result</th>
+                      <th className="py-3 px-4">Year Total (P / A / L)</th>
                       <th className="py-3 px-4">Last Marked (BS)</th>
                       <th className="py-3 px-4">Call</th>
                     </tr>
@@ -527,6 +574,19 @@ export default function ReportsPage() {
                               </div>
                             )}
                           </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-200">
+                          {((row.yearlyPresent ?? 0) +
+                            (row.yearlyAbsent ?? 0) +
+                            (row.yearlyLeave ?? 0)) > 0 ? (
+                            <span>
+                              P: {row.yearlyPresent ?? 0} • A:{' '}
+                              {row.yearlyAbsent ?? 0} • L:{' '}
+                              {row.yearlyLeave ?? 0}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">—</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-blue-300 text-sm">
                           {row.lastMarkedBS || 'Not marked yet'}
@@ -620,6 +680,23 @@ export default function ReportsPage() {
                           <div className="text-blue-300">{row.lastMarkedBS || '—'}</div>
                         </div>
                       </div>
+                    </div>
+
+                    <div className="mt-2 text-xs text-gray-400">
+                      <div className="font-semibold text-gray-200">
+                        Year total
+                      </div>
+                      {((row.yearlyPresent ?? 0) +
+                        (row.yearlyAbsent ?? 0) +
+                        (row.yearlyLeave ?? 0)) > 0 ? (
+                        <div>
+                          P: {row.yearlyPresent ?? 0} • A:{' '}
+                          {row.yearlyAbsent ?? 0} • L:{' '}
+                          {row.yearlyLeave ?? 0}
+                        </div>
+                      ) : (
+                        <div className="text-gray-500">No records this year</div>
+                      )}
                     </div>
                   </div>
                 ))}
