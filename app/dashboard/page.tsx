@@ -147,10 +147,10 @@ export default function DashboardPage() {
         { name: 'Leave', value: leaveCount },
       ]);
 
-      // Monthly Line Trend
-      const trend = last7Days.map((d) => ({
-        name: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        attendance: Math.floor(Math.random() * 100),
+      // Line Trend based on actual attendance (present count per day)
+      const trend = weeklyData.map((d) => ({
+        name: d.name,
+        attendance: d.present,
       }));
 
       setLineData(trend);
