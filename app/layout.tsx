@@ -4,7 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { StoreProvider } from "@/store/StoreProvider";
 import Footer from "@/components/Footer";
-import { useEffect } from "react";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,27 +28,6 @@ export const metadata: Metadata = {
     title: "AttendanceTracker",
   },
 };
-
-function ServiceWorkerRegister() {
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator)) return;
-
-    const registerSW = async () => {
-      try {
-        await navigator.serviceWorker.register("/sw.js");
-      } catch {
-        // swallow errors – app should still work
-      }
-    };
-
-    // Give Next.js a moment so dev/HMR is less likely to conflict
-    const timeout = setTimeout(registerSW, 1500);
-    return () => clearTimeout(timeout);
-  }, []);
-
-  return null;
-}
 
 export default function RootLayout({
   children,
