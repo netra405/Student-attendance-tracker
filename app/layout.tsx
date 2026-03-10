@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { StoreProvider } from "@/store/StoreProvider";
 import Footer from "@/components/Footer";
+import { useEffect } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,8 +18,37 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AttendanceTracker - Student Attendance Management",
-  description: "A modern student attendance tracking application built with Next.js and MongoDB",
+  description:
+    "A modern student attendance tracking application built with Next.js and MongoDB",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#0f172a",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AttendanceTracker",
+  },
 };
+
+function ServiceWorkerRegister() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator)) return;
+
+    const registerSW = async () => {
+      try {
+        await navigator.serviceWorker.register("/sw.js");
+      } catch {
+        // swallow errors – app should still work
+      }
+    };
+
+    // Give Next.js a moment so dev/HMR is less likely to conflict
+    const timeout = setTimeout(registerSW, 1500);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  return null;
+}
 
 export default function RootLayout({
   children,
@@ -32,8 +62,9 @@ export default function RootLayout({
       >
         <StoreProvider>
           <SessionProvider>
+            <ServiceWorkerRegister />
             {children}
-            <Footer/>
+            <Footer />
           </SessionProvider>
         </StoreProvider>
       </body>
