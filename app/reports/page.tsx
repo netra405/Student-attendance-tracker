@@ -90,6 +90,7 @@ export default function ReportsPage() {
   const [classes, setClasses] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -97,6 +98,7 @@ export default function ReportsPage() {
 
   const fetchReportData = async () => {
     try {
+      setIsLoading(true);
       setStudentStats({});
       setReportData([]);
 
@@ -289,6 +291,8 @@ export default function ReportsPage() {
 
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -366,10 +370,14 @@ export default function ReportsPage() {
           <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 text-gray-100">
 
             <div className="flex flex-col md:flex-row justify-between gap-4">
-
-              <h1 className="text-3xl md:text-4xl font-bold text-white">
-                Reports 📈
-              </h1>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                  Reports 📈
+                </h1>
+                <p className="text-gray-400 text-sm md:text-base">
+                  Track attendance patterns and identify students who need attention
+                </p>
+              </div>
 
               <div className="flex gap-3 flex-wrap items-center">
                 <Calendar
@@ -382,7 +390,7 @@ export default function ReportsPage() {
                       setYear(d.getFullYear());
                     }
                   }}
-                  label="Select Date (Bikram Sambat) — view past or upcoming month"
+                  label="Select Date (Bikram Sambat)"
                 />
               </div>
             </div>
@@ -390,17 +398,46 @@ export default function ReportsPage() {
             {/* Class-wise Absenteeism Report */}
             {selectedClass && (
               <AnimatedCard>
-                <h2 className="text-xl md:text-2xl font-bold mb-1">
-                  Class-wise Absenteeism Report - {selectedClass}
-                </h2>
-                <p className="text-sm text-gray-400 mb-4">
-                  Students sorted by most absent days this year. Each pie chart shows yearly attendance breakdown.
-                </p>
-                <p className="text-sm text-blue-300 mb-4">
-                  Nepali Calendar Date: {selectedDateBS || adToBSFormatted(new Date())}
-                </p>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
+                      🎯 Class-wise Absenteeism Report
+                    </h2>
+                    <p className="text-sm text-gray-400">
+                      {selectedClass} • Students sorted by most absent days
+                    </p>
+                  </div>
+                  {selectedDateBS && (
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Nepali Date</div>
+                      <div className="text-sm font-semibold text-blue-400">{selectedDateBS}</div>
+                    </div>
+                  )}
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex flex-col items-center gap-4">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        className="text-4xl"
+                      >
+                        ⏳
+                      </motion.div>
+                      <p className="text-gray-400">Loading absenteeism data...</p>
+                    </div>
+                  </div>
+                ) : Object.entries(studentStats).filter(([name]) => {
+                  const student = students.find(s => s.name === name);
+                  return student && student.className === selectedClass;
+                }).length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">📚</div>
+                    <p className="text-gray-400">No attendance data found for {selectedClass}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(studentStats)
                     .filter(([name]) => {
                       const student = students.find(s => s.name === name);
@@ -418,120 +455,191 @@ export default function ReportsPage() {
                       const totalYearly = (stats.yearlyPresent || 0) + (stats.yearlyAbsent || 0) + (stats.yearlyLeave || 0);
 
                       return (
-                        <div key={name} className="bg-gray-800 p-4 rounded-xl space-y-3">
+                        <motion.div 
+                          key={name} 
+                          className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-xl space-y-3 border border-gray-700 hover:border-gray-600 transition-all duration-200 hover:shadow-lg"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 * (Object.entries(studentStats).findIndex(([n]) => n === name) % 6) }}
+                        >
                           <div className="flex items-center justify-between">
-                            <div className="font-semibold text-lg">{name}</div>
-                            <div className="text-sm text-gray-400">
-                              Roll: {student?.rollNumber || 'N/A'}
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                {name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-white">{name}</div>
+                                <div className="text-xs text-gray-400">Roll: {student?.rollNumber || 'N/A'}</div>
+                              </div>
                             </div>
+                            {stats.yearlyAbsent && stats.yearlyAbsent > 10 && (
+                              <div className="px-2 py-1 bg-red-500/20 border border-red-500/50 rounded-full">
+                                <span className="text-xs text-red-400 font-medium">High Risk</span>
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex items-center justify-center">
-                            <div className="w-32 h-32">
-                              {yearlyPieData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                    <Pie
-                                      data={yearlyPieData}
-                                      dataKey="value"
-                                      cx="50%"
-                                      cy="50%"
-                                      outerRadius={50}
-                                      innerRadius={20}
-                                      paddingAngle={2}
-                                    >
-                                      {yearlyPieData.map((entry, i) => (
-                                        <Cell key={i} fill={entry.color} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              ) : (
-                                <div className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center text-sm text-gray-500">
-                                  No Data
+                            <div className="relative">
+                              <div className="w-32 h-32">
+                                {yearlyPieData.length > 0 ? (
+                                  <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                      <Pie
+                                        data={yearlyPieData}
+                                        dataKey="value"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={50}
+                                        innerRadius={20}
+                                        paddingAngle={2}
+                                        animationBegin={0}
+                                        animationDuration={800}
+                                      >
+                                        {yearlyPieData.map((entry, i) => (
+                                          <Cell key={i} fill={entry.color} />
+                                        ))}
+                                      </Pie>
+                                      <Tooltip />
+                                    </PieChart>
+                                  </ResponsiveContainer>
+                                ) : (
+                                  <div className="w-full h-full rounded-full bg-gray-700/50 flex items-center justify-center text-sm text-gray-500 border-2 border-dashed border-gray-600">
+                                    <div className="text-center">
+                                      <div className="text-2xl mb-1">📊</div>
+                                      <div>No Data</div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              {totalYearly > 0 && (
+                                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-900 border-2 border-gray-700 flex items-center justify-center">
+                                  <span className="text-xs font-bold text-blue-400">
+                                    {((stats.yearlyPresent || 0) / totalYearly * 100).toFixed(0)}%
+                                  </span>
                                 </div>
                               )}
                             </div>
                           </div>
 
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Total Days:</span>
-                              <span className="font-semibold">{totalYearly}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Absent:</span>
-                              <span className="font-semibold text-red-400">{stats.yearlyAbsent || 0} days</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Present:</span>
-                              <span className="font-semibold text-green-400">{stats.yearlyPresent || 0} days</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-400">Leave:</span>
-                              <span className="font-semibold text-amber-400">{stats.yearlyLeave || 0} days</span>
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div className="bg-gray-700/30 rounded-lg p-2 text-center">
+                                <div className="text-xs text-gray-400">Total Days</div>
+                                <div className="font-semibold text-white">{totalYearly}</div>
+                              </div>
+                              <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-2 text-center">
+                                <div className="text-xs text-red-400">Absent</div>
+                                <div className="font-semibold text-red-400">{stats.yearlyAbsent || 0}</div>
+                              </div>
+                              <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-2 text-center">
+                                <div className="text-xs text-green-400">Present</div>
+                                <div className="font-semibold text-green-400">{stats.yearlyPresent || 0}</div>
+                              </div>
+                              <div className="bg-amber-900/20 border border-amber-800/50 rounded-lg p-2 text-center">
+                                <div className="text-xs text-amber-400">Leave</div>
+                                <div className="font-semibold text-amber-400">{stats.yearlyLeave || 0}</div>
+                              </div>
                             </div>
                             {totalYearly > 0 && (
-                              <div className="flex justify-between pt-2 border-t border-gray-700">
-                                <span className="text-gray-400">Attendance Rate:</span>
-                                <span className="font-semibold text-blue-400">
-                                  {((stats.yearlyPresent || 0) / totalYearly * 100).toFixed(1)}%
-                                </span>
+                              <div className="pt-2 border-t border-gray-700">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-400">Attendance Rate</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-12 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-linear-to-r from-blue-500 to-purple-600 transition-all duration-500"
+                                        style={{ width: `${((stats.yearlyPresent || 0) / totalYearly * 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="font-semibold text-blue-400">
+                                      {((stats.yearlyPresent || 0) / totalYearly * 100).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>
 
                           {stats.yearlyAbsent && stats.yearlyAbsent > 10 && (
-                            <div className="mt-2 p-2 bg-red-900/30 border border-red-700 rounded-lg">
-                              <div className="text-xs text-red-400 font-medium">
-                                ⚠️ High Absenteeism Alert
+                            <motion.div 
+                              className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg"
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3, delay: 0.5 }}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-red-400">⚠️</span>
+                                <span className="text-xs text-red-400 font-medium">High Absenteeism Alert</span>
                               </div>
                               <div className="text-xs text-red-300">
-                                {stats.yearlyAbsent} days absent this year
+                                {stats.yearlyAbsent} days absent this year • Requires immediate attention
                               </div>
-                            </div>
+                            </motion.div>
                           )}
-                        </div>
+                        </motion.div>
                       );
                     })}
-                </div>
+                  </div>
+                )}
               </AnimatedCard>
             )}
 
             {classes.length > 0 && (
               <AnimatedCard>
-                <div className="flex flex-col gap-3">
-                  <span className="text-sm md:text-base font-semibold text-gray-100">
-                    Choose Class
-                  </span>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white mb-1">📚 Choose Class</h2>
+                    <p className="text-sm text-gray-400">Select a class to view detailed attendance reports</p>
+                  </div>
                   <div className="flex flex-wrap gap-3">
-                    {classes.map((className) => {
+                    {classes.map((className, index) => {
                       const isActive = selectedClass === className;
                       return (
-                        <button
+                        <motion.button
                           key={className}
                           type="button"
                           onClick={() => setSelectedClass(className)}
-                          className={`px-4 md:px-6 py-2 md:py-2.5 rounded-full text-sm md:text-base font-semibold transition-all border ${isActive
-                              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg shadow-blue-500/40 scale-[1.02]'
-                              : 'bg-gray-800/90 text-gray-200 border-gray-700 hover:bg-gray-700 hover:border-gray-500'
+                          className={`px-4 md:px-6 py-2.5 md:py-3 rounded-full text-sm md:text-base font-semibold transition-all duration-200 border ${isActive
+                              ? 'bg-linear-to-r from-blue-500 to-purple-600 text-white border-transparent shadow-lg shadow-blue-500/40 scale-[1.02]'
+                              : 'bg-gray-800/90 text-gray-200 border-gray-700 hover:bg-gray-700 hover:border-gray-500 hover:scale-[1.02]'
                             }`}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.2, delay: index * 0.05 }}
+                          whileHover={{ y: -2 }}
+                          whileTap={{ scale: 0.95 }}
                         >
-                          {className}
-                        </button>
+                          <span className="flex items-center gap-2">
+                            <span>{isActive ? '✓' : '📁'}</span>
+                            <span>{className}</span>
+                          </span>
+                        </motion.button>
                       );
                     })}
                   </div>
+                  {selectedClass && (
+                    <motion.div 
+                      className="text-sm text-blue-400 bg-blue-900/20 border border-blue-800/50 rounded-lg p-3"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>🎯</span>
+                        <span>Showing reports for <strong>{selectedClass}</strong></span>
+                      </span>
+                    </motion.div>
+                  )}
                 </div>
               </AnimatedCard>
             )}
 
             {/* Chart */}
             <AnimatedCard>
-              <h2 className="text-xl md:text-2xl font-bold mb-4">
-                Daily Attendance Trend
-              </h2>
+              <div className="mb-4">
+                <h2 className="text-xl md:text-2xl font-bold text-white mb-1">📈 Daily Attendance Trend</h2>
+                <p className="text-sm text-gray-400">Monthly overview of attendance patterns</p>
+              </div>
 
               <div className="h-[280px] md:h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -552,12 +660,14 @@ export default function ReportsPage() {
             {/* Pie Chart for selected date (Bikram Sambat) */}
             {dailyTotal > 0 && (
               <AnimatedCard>
-                <h2 className="text-xl md:text-2xl font-bold mb-1">
-                  Attendance Breakdown — {selectedDateBS} (BS)
-                </h2>
-                <p className="text-sm text-gray-400 mb-4">
-                  This pie chart shows how many students were present, absent, or on leave on the date selected in the calendar.
-                </p>
+                <div className="mb-4">
+                  <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
+                    🎂 Attendance Breakdown — {selectedDateBS} (BS)
+                  </h2>
+                  <p className="text-sm text-gray-400">
+                    Daily attendance distribution for the selected Nepali calendar date
+                  </p>
+                </div>
 
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <div className="w-full md:w-1/2 h-64">
@@ -607,23 +717,25 @@ export default function ReportsPage() {
 
             {/* Attendance Summary by Student — today's status, month pie, last marked (BS) */}
             <AnimatedCard>
-              <h2 className="text-xl md:text-2xl font-bold mb-1">
-                Attendance Summary by Student
-              </h2>
-              <p className="text-sm text-gray-400 mb-4">
-                Selected date ({selectedDate ? adToBSFormatted(new Date(selectedDate)) : '—'}) status: Present, Absent, or Leave. Last marked in BS calendar. Small pie shows this month&apos;s breakdown.
-              </p>
+              <div className="mb-4">
+                <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
+                  👥 Attendance Summary by Student
+                </h2>
+                <p className="text-sm text-gray-400">
+                  Individual student attendance details with yearly statistics and contact information
+                </p>
+              </div>
 
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm md:text-base">
                   <thead>
                     <tr className="border-b border-gray-700">
-                      <th className="py-3 px-4">Student</th>
-                      <th className="py-3 px-4">Today&apos;s Status</th>
-                      <th className="py-3 px-4">Month Result</th>
-                      <th className="py-3 px-4">Year Total (P / A / L)</th>
-                      <th className="py-3 px-4">Last Marked (BS)</th>
-                      <th className="py-3 px-4">Call</th>
+                      <th className="py-3 px-4 text-left text-gray-300 font-semibold">Student</th>
+                      <th className="py-3 px-4 text-center text-gray-300 font-semibold">Today&apos;s Status</th>
+                      <th className="py-3 px-4 text-center text-gray-300 font-semibold">Month Result</th>
+                      <th className="py-3 px-4 text-center text-gray-300 font-semibold">Year Total (P / A / L)</th>
+                      <th className="py-3 px-4 text-center text-gray-300 font-semibold">Last Marked (BS)</th>
+                      <th className="py-3 px-4 text-center text-gray-300 font-semibold">Action</th>
                     </tr>
                   </thead>
 
@@ -706,8 +818,10 @@ export default function ReportsPage() {
                         <td className="py-3 px-4">
                           {row.phone && (
                             <a href={`tel:${row.phone}`}
-                              className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg text-white text-sm">
-                              📞 Call
+                              className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors duration-200"
+                            >
+                              <span>📞</span>
+                              <span>Call</span>
                             </a>
                           )}
                         </td>
@@ -719,51 +833,62 @@ export default function ReportsPage() {
 
               {/* Mobile Card View */}
               <div className="md:hidden space-y-4">
-                {reportRows.map((row) => (
-                  <div key={row.name}
-                    className="bg-gray-800 p-4 rounded-xl space-y-3"
+                {reportRows.map((row, index) => (
+                  <motion.div 
+                    key={row.name}
+                    className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-xl space-y-3 border border-gray-700"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="font-semibold text-lg">{row.name}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                          {row.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="font-semibold text-white">{row.name}</div>
+                      </div>
                       {row.phone && (
                         <a href={`tel:${row.phone}`}
-                          className="bg-green-500 px-3 py-1 rounded-lg text-sm text-white">
-                          📞 Call
+                          className="bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded-lg text-sm text-white font-medium transition-colors duration-200 flex items-center gap-1"
+                        >
+                          <span>📞</span>
+                          <span>Call</span>
                         </a>
                       )}
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <div>
-                        <div className="text-xs text-gray-400 mb-1">Today</div>
+                      <div className="flex-1">
+                        <div className="text-xs text-gray-400 mb-2">Today's Status</div>
                         {row.todayStatus === 'present' && (
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-green-500">
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-green-500 bg-green-900/20 px-2 py-1 rounded-lg">
                             <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
                             Present
                           </span>
                         )}
                         {row.todayStatus === 'absent' && (
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-red-500">
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-red-500 bg-red-900/20 px-2 py-1 rounded-lg">
                             <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
                             Absent
                           </span>
                         )}
                         {row.todayStatus === 'leave' && (
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-amber-400">
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-amber-400 bg-amber-900/20 px-2 py-1 rounded-lg">
                             <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
                             Leave
                           </span>
                         )}
                         {!row.todayStatus && (
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 bg-gray-700/50 px-2 py-1 rounded-lg">
                             <span className="h-2 w-2 rounded-full bg-gray-500 shrink-0" />
                             Not marked
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="w-12 h-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-14 h-14">
                           {row.pieData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                               <PieChart>
@@ -772,9 +897,11 @@ export default function ReportsPage() {
                                   dataKey="value"
                                   cx="50%"
                                   cy="50%"
-                                  outerRadius={18}
-                                  innerRadius={6}
+                                  outerRadius={20}
+                                  innerRadius={8}
                                   paddingAngle={2}
+                                  animationBegin={0}
+                                  animationDuration={600}
                                 >
                                   {row.pieData.map((entry, i) => (
                                     <Cell key={i} fill={entry.color} />
@@ -784,33 +911,47 @@ export default function ReportsPage() {
                               </PieChart>
                             </ResponsiveContainer>
                           ) : (
-                            <div className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center text-[10px] text-gray-500">—</div>
+                            <div className="w-full h-full rounded-full bg-gray-700/50 flex items-center justify-center text-[10px] text-gray-500 border border-dashed border-gray-600">—</div>
                           )}
                         </div>
-                        <div className="text-xs text-gray-400">
-                          <div>Month</div>
-                          <div className="text-blue-300">{row.lastMarkedBS || '—'}</div>
-                        </div>
+                        <div className="text-xs text-gray-400">Month</div>
+                      </div>
+
+                      <div className="flex-1 text-right">
+                        <div className="text-xs text-gray-400 mb-1">Last Marked</div>
+                        <div className="text-xs text-blue-300 font-medium">{row.lastMarkedBS || '—'}</div>
                       </div>
                     </div>
 
-                    <div className="mt-2 text-xs text-gray-400">
-                      <div className="font-semibold text-gray-200">
-                        Year total
+                    <div className="mt-3 pt-3 border-t border-gray-700">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-semibold text-gray-200">Yearly Statistics</div>
+                        {((row.yearlyPresent ?? 0) + (row.yearlyAbsent ?? 0) + (row.yearlyLeave ?? 0)) > 0 && (
+                          <div className="text-xs font-semibold text-blue-400">
+                            {(((row.yearlyPresent ?? 0) / ((row.yearlyPresent ?? 0) + (row.yearlyAbsent ?? 0) + (row.yearlyLeave ?? 0))) * 100).toFixed(1)}% Attendance
+                          </div>
+                        )}
                       </div>
-                      {((row.yearlyPresent ?? 0) +
-                        (row.yearlyAbsent ?? 0) +
-                        (row.yearlyLeave ?? 0)) > 0 ? (
-                        <div>
-                          P: {row.yearlyPresent ?? 0} • A:{' '}
-                          {row.yearlyAbsent ?? 0} • L:{' '}
-                          {row.yearlyLeave ?? 0}
+                      {((row.yearlyPresent ?? 0) + (row.yearlyAbsent ?? 0) + (row.yearlyLeave ?? 0)) > 0 ? (
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-2 text-center">
+                            <div className="text-green-400 font-semibold">{row.yearlyPresent ?? 0}</div>
+                            <div className="text-green-400/70">Present</div>
+                          </div>
+                          <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-2 text-center">
+                            <div className="text-red-400 font-semibold">{row.yearlyAbsent ?? 0}</div>
+                            <div className="text-red-400/70">Absent</div>
+                          </div>
+                          <div className="bg-amber-900/20 border border-amber-800/50 rounded-lg p-2 text-center">
+                            <div className="text-amber-400 font-semibold">{row.yearlyLeave ?? 0}</div>
+                            <div className="text-amber-400/70">Leave</div>
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-gray-500">No records this year</div>
+                        <div className="text-center py-2 text-xs text-gray-500">No records this year</div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </AnimatedCard>
