@@ -54,6 +54,12 @@ interface Student {
 
 type TodayStatus = 'present' | 'absent' | 'leave' | null;
 
+interface AttendanceDetail {
+  date: string;
+  dateBS: string;
+  status: 'present' | 'absent' | 'leave';
+}
+
 interface ReportStats {
   presentCount: number;
   absentCount: number;
@@ -65,6 +71,7 @@ interface ReportStats {
   yearlyPresent?: number;
   yearlyAbsent?: number;
   yearlyLeave?: number;
+  attendanceDetails?: AttendanceDetail[];
 }
 
 interface DailySummary {
@@ -90,6 +97,8 @@ export default function ReportsPage() {
   const [classes, setClasses] = useState<string[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -169,6 +178,13 @@ export default function ReportsPage() {
         else if (record.status === 'absent') yearlyStatsMap[key].absent++;
         else if (record.status === 'leave') yearlyStatsMap[key].leave++;
       });
+
+      // Fetch detailed attendance records for modal
+      const detailedAttendanceRes = await fetch(
+        `/api/attendance?year=${year}${yearlyClassParam}`
+      );
+      const detailedData = await detailedAttendanceRes.json();
+      const detailedRecords = detailedData.records || [];
 
       const stats: Record<string, ReportStats> = {};
       const dailyData: any[] = [];
@@ -254,6 +270,17 @@ export default function ReportsPage() {
           yearlyPresent: yearlyStatsMap[student.name]?.present ?? 0,
           yearlyAbsent: yearlyStatsMap[student.name]?.absent ?? 0,
           yearlyLeave: yearlyStatsMap[student.name]?.leave ?? 0,
+          attendanceDetails: detailedRecords
+            .filter((r: any) => {
+              const recordStudentId = r.studentId?._id ?? r.studentId;
+              return String(recordStudentId) === String(student._id);
+            })
+            .map((r: any) => ({
+              date: new Date(r.date).toISOString().split('T')[0],
+              dateBS: adToBSFormatted(new Date(r.date)),
+              status: r.status
+            }))
+            .sort((a: AttendanceDetail, b: AttendanceDetail) => new Date(b.date).getTime() - new Date(a.date).getTime())
         };
       });
 
@@ -524,19 +551,43 @@ export default function ReportsPage() {
 
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3 text-sm">
-                              <div className="bg-gray-700/30 rounded-lg p-2 text-center">
+                              <div 
+                                className="bg-gray-700/30 rounded-lg p-2 text-center cursor-pointer hover:bg-gray-700/50 transition-colors"
+                                onClick={() => {
+                                  setSelectedStudent(name);
+                                  setShowAttendanceModal(true);
+                                }}
+                              >
                                 <div className="text-xs text-gray-400">Total Days</div>
                                 <div className="font-semibold text-white">{totalYearly}</div>
                               </div>
-                              <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-2 text-center">
+                              <div 
+                                className="bg-red-900/20 border border-red-800/50 rounded-lg p-2 text-center cursor-pointer hover:bg-red-900/30 transition-colors"
+                                onClick={() => {
+                                  setSelectedStudent(name);
+                                  setShowAttendanceModal(true);
+                                }}
+                              >
                                 <div className="text-xs text-red-400">Absent</div>
                                 <div className="font-semibold text-red-400">{stats.yearlyAbsent || 0}</div>
                               </div>
-                              <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-2 text-center">
+                              <div 
+                                className="bg-green-900/20 border border-green-800/50 rounded-lg p-2 text-center cursor-pointer hover:bg-green-900/30 transition-colors"
+                                onClick={() => {
+                                  setSelectedStudent(name);
+                                  setShowAttendanceModal(true);
+                                }}
+                              >
                                 <div className="text-xs text-green-400">Present</div>
                                 <div className="font-semibold text-green-400">{stats.yearlyPresent || 0}</div>
                               </div>
-                              <div className="bg-amber-900/20 border border-amber-800/50 rounded-lg p-2 text-center">
+                              <div 
+                                className="bg-amber-900/20 border border-amber-800/50 rounded-lg p-2 text-center cursor-pointer hover:bg-amber-900/30 transition-colors"
+                                onClick={() => {
+                                  setSelectedStudent(name);
+                                  setShowAttendanceModal(true);
+                                }}
+                              >
                                 <div className="text-xs text-amber-400">Leave</div>
                                 <div className="font-semibold text-amber-400">{stats.yearlyLeave || 0}</div>
                               </div>
@@ -959,6 +1010,104 @@ export default function ReportsPage() {
           </div>
         </div>
       </div>
+
+      {/* Attendance Details Modal */}
+      {showAttendanceModal && selectedStudent && studentStats[selectedStudent] && (
+        <motion.div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setShowAttendanceModal(false)}
+        >
+          <motion.div 
+            className="bg-gray-800 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden border border-gray-700"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-white">Attendance Details</h3>
+                <p className="text-sm text-gray-400">{selectedStudent} • Year {year}</p>
+              </div>
+              <button
+                onClick={() => setShowAttendanceModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-gray-300 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto max-h-[60vh]">
+              {studentStats[selectedStudent].attendanceDetails && studentStats[selectedStudent].attendanceDetails!.length > 0 ? (
+                <div className="space-y-2">
+                  {studentStats[selectedStudent].attendanceDetails!.map((detail, index) => (
+                    <motion.div 
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg border border-gray-600 hover:bg-gray-700/50 transition-colors"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          detail.status === 'present' ? 'bg-green-500' :
+                          detail.status === 'absent' ? 'bg-red-500' :
+                          'bg-amber-400'
+                        }`} />
+                        <div>
+                          <div className="font-medium text-white capitalize">{detail.status}</div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(detail.date).toLocaleDateString('en-NP', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-blue-300">{detail.dateBS}</div>
+                        <div className="text-xs text-gray-400">{detail.date}</div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📅</div>
+                  <p className="text-gray-400">No attendance records found for {selectedStudent}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-gray-700">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-green-400">
+                    {studentStats[selectedStudent].yearlyPresent || 0}
+                  </div>
+                  <div className="text-xs text-gray-400">Present Days</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-red-400">
+                    {studentStats[selectedStudent].yearlyAbsent || 0}
+                  </div>
+                  <div className="text-xs text-gray-400">Absent Days</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-amber-400">
+                    {studentStats[selectedStudent].yearlyLeave || 0}
+                  </div>
+                  <div className="text-xs text-gray-400">Leave Days</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }
