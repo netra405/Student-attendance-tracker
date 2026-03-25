@@ -387,6 +387,118 @@ export default function ReportsPage() {
               </div>
             </div>
 
+            {/* Class-wise Absenteeism Report */}
+            {selectedClass && (
+              <AnimatedCard>
+                <h2 className="text-xl md:text-2xl font-bold mb-1">
+                  Class-wise Absenteeism Report - {selectedClass}
+                </h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  Students sorted by most absent days this year. Each pie chart shows yearly attendance breakdown.
+                </p>
+                <p className="text-sm text-blue-300 mb-4">
+                  Nepali Calendar Date: {selectedDateBS || adToBSFormatted(new Date())}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(studentStats)
+                    .filter(([name]) => {
+                      const student = students.find(s => s.name === name);
+                      return student && student.className === selectedClass;
+                    })
+                    .sort(([,a], [,b]) => (b.yearlyAbsent || 0) - (a.yearlyAbsent || 0))
+                    .map(([name, stats]) => {
+                      const student = students.find(s => s.name === name);
+                      const yearlyPieData = [
+                        { name: 'Present', value: stats.yearlyPresent || 0, color: '#22c55e' },
+                        { name: 'Absent', value: stats.yearlyAbsent || 0, color: '#ef4444' },
+                        { name: 'Leave', value: stats.yearlyLeave || 0, color: '#eab308' },
+                      ].filter((d) => d.value > 0);
+
+                      const totalYearly = (stats.yearlyPresent || 0) + (stats.yearlyAbsent || 0) + (stats.yearlyLeave || 0);
+
+                      return (
+                        <div key={name} className="bg-gray-800 p-4 rounded-xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="font-semibold text-lg">{name}</div>
+                            <div className="text-sm text-gray-400">
+                              Roll: {student?.rollNumber || 'N/A'}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-center">
+                            <div className="w-32 h-32">
+                              {yearlyPieData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                    <Pie
+                                      data={yearlyPieData}
+                                      dataKey="value"
+                                      cx="50%"
+                                      cy="50%"
+                                      outerRadius={50}
+                                      innerRadius={20}
+                                      paddingAngle={2}
+                                    >
+                                      {yearlyPieData.map((entry, i) => (
+                                        <Cell key={i} fill={entry.color} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              ) : (
+                                <div className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center text-sm text-gray-500">
+                                  No Data
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Total Days:</span>
+                              <span className="font-semibold">{totalYearly}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Absent:</span>
+                              <span className="font-semibold text-red-400">{stats.yearlyAbsent || 0} days</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Present:</span>
+                              <span className="font-semibold text-green-400">{stats.yearlyPresent || 0} days</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Leave:</span>
+                              <span className="font-semibold text-amber-400">{stats.yearlyLeave || 0} days</span>
+                            </div>
+                            {totalYearly > 0 && (
+                              <div className="flex justify-between pt-2 border-t border-gray-700">
+                                <span className="text-gray-400">Attendance Rate:</span>
+                                <span className="font-semibold text-blue-400">
+                                  {((stats.yearlyPresent || 0) / totalYearly * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {stats.yearlyAbsent && stats.yearlyAbsent > 10 && (
+                            <div className="mt-2 p-2 bg-red-900/30 border border-red-700 rounded-lg">
+                              <div className="text-xs text-red-400 font-medium">
+                                ⚠️ High Absenteeism Alert
+                              </div>
+                              <div className="text-xs text-red-300">
+                                {stats.yearlyAbsent} days absent this year
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </AnimatedCard>
+            )}
+
             {classes.length > 0 && (
               <AnimatedCard>
                 <div className="flex flex-col gap-3">
