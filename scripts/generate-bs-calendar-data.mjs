@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { BSToAD } from 'datex-bs';
 
@@ -25,7 +25,9 @@ function getMonthLength(year, month) {
 function generateData() {
   const years = {};
   for (let year = MIN_YEAR; year <= MAX_YEAR; year++) {
-    years[String(year)] = Array.from({ length: 12 }, (_, i) => getMonthLength(year, i + 1));
+    years[String(year)] = Array.from({ length: 12 }, (_, i) =>
+      getMonthLength(year, i + 1)
+    );
   }
   return {
     source: 'datex-bs',
@@ -37,6 +39,8 @@ function generateData() {
 }
 
 const data = generateData();
+const outputDir = resolve(process.cwd(), 'data');
 const outputPath = resolve(process.cwd(), 'data', 'bs-calendar-data.json');
+mkdirSync(outputDir, { recursive: true });
 writeFileSync(outputPath, JSON.stringify(data, null, 2) + '\n', 'utf8');
-console.log(`Generated ${outputPath} with years ${MIN_YEAR}-${MAX_YEAR}`);
+console.log(`Generated ${outputPath} with years ${data.minYear}-${data.maxYear}`);

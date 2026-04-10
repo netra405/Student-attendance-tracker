@@ -1,9 +1,8 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ADToBS, BSToAD } from 'datex-bs';
-import { BS_MAX_YEAR, BS_MIN_YEAR, getBsMonthLength, hasBsYear } from '@/lib/bsCalendarData';
 
 interface CalendarProps {
   value: string;
@@ -31,6 +30,8 @@ const BS_MONTHS = [
 
 const START_BS_YEAR = 2082;
 const RANGE_WINDOW = 50;
+const FALLBACK_MIN_BS_YEAR = 1977;
+const FALLBACK_MAX_BS_YEAR = 2200;
 
 /* ---------------- Local Date Helpers ---------------- */
 
@@ -61,16 +62,14 @@ function safeADToBS(iso: string) {
   }
 }
 
-function getInitialBs(value?: string) {
+function getInitialBs(value?: string, minBsYear = FALLBACK_MIN_BS_YEAR, maxBsYear = FALLBACK_MAX_BS_YEAR) {
   const base = value || getLocalIso(new Date());
 
   const bs = safeADToBS(base);
   const [y, m] = bs.split('-').map(Number);
   const year = y || START_BS_YEAR;
-  const fallbackYear = hasBsYear(START_BS_YEAR) ? START_BS_YEAR : BS_MIN_YEAR;
-  const normalizedYear = hasBsYear(year)
-    ? year
-    : Math.min(BS_MAX_YEAR, Math.max(BS_MIN_YEAR, fallbackYear));
+  const fallbackYear = Math.min(maxBsYear, Math.max(minBsYear, START_BS_YEAR));
+  const normalizedYear = Math.min(maxBsYear, Math.max(minBsYear, year || fallbackYear));
 
   return {
     bsYear: normalizedYear,
@@ -86,7 +85,10 @@ export default function Calendar({
   label,
   disablePast = false,
 }: CalendarProps) {
-  const initial = getInitialBs(value);
+  const [bsMinYear, setBsMinYear] = useState(FALLBACK_MIN_BS_YEAR);
+  const [bsMaxYear, setBsMaxYear] = useState(FALLBACK_MAX_BS_YEAR);
+  const [monthLengthsByYear, setMonthLengthsByYear] = useState<Record<string, number[]>>({});
+  const initial = getInitialBs(value, bsMinYear, bsMaxYear);
 
   const [bsYear, setBsYear] = useState(initial.bsYear);
   const [bsMonth, setBsMonth] = useState(initial.bsMonth);
@@ -94,11 +96,34 @@ export default function Calendar({
   const todayIso = getLocalIso(new Date());
   const selectedIso = value;
 
+  useEffect(() => {
+    const loadCalendarData = async () => {
+      try {
+        const res = await fetch('/api/bs-calendar', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        setBsMinYear(Number(data.minYear) || FALLBACK_MIN_BS_YEAR);
+        setBsMaxYear(Number(data.maxYear) || FALLBACK_MAX_BS_YEAR);
+        setMonthLengthsByYear((data.years || {}) as Record<string, number[]>);
+      } catch {
+        // keep fallback values silently
+      }
+    };
+
+    loadCalendarData();
+    window.addEventListener('focus', loadCalendarData);
+    return () => window.removeEventListener('focus', loadCalendarData);
+  }, []);
+
+  useEffect(() => {
+    setBsYear((current) => Math.min(bsMaxYear, Math.max(bsMinYear, current)));
+  }, [bsMinYear, bsMaxYear]);
+
   /* ---------- Year Dropdown Window ---------- */
 
   const yearRange = useMemo(() => {
-    const from = Math.max(BS_MIN_YEAR, bsYear - RANGE_WINDOW);
-    const to = Math.min(BS_MAX_YEAR, bsYear + RANGE_WINDOW);
+    const from = Math.max(bsMinYear, bsYear - RANGE_WINDOW);
+    const to = Math.min(bsMaxYear, bsYear + RANGE_WINDOW);
 
     return Array.from(
       { length: to - from + 1 },
@@ -110,7 +135,8 @@ export default function Calendar({
 
   const { days, monthLabel } = useMemo(() => {
     const result: Array<{ day: number | null; iso?: string }> = [];
-    const daysInMonth = getBsMonthLength(bsYear, bsMonth) ?? 32;
+    const months = monthLengthsByYear[String(bsYear)];
+    const daysInMonth = months?.[bsMonth - 1] ?? 32;
 
     let firstWeekday: number | null = null;
 
@@ -159,11 +185,11 @@ export default function Calendar({
 
       const bs = safeADToBS(formatUTCToIso(d));
       const [y, m] = bs.split('-').map(Number);
-      const clampedYear = Math.min(BS_MAX_YEAR, Math.max(BS_MIN_YEAR, y));
+      const clampedYear = Math.min(bsMaxYear, Math.max(bsMinYear, y));
       setBsYear(clampedYear);
       setBsMonth(m || 1);
     } catch {
-      if (bsYear <= BS_MIN_YEAR && bsMonth === 1) return;
+      if (bsYear <= bsMinYear && bsMonth === 1) return;
       if (bsMonth === 1) {
         setBsYear((y) => y - 1);
         setBsMonth(12);
@@ -184,11 +210,11 @@ export default function Calendar({
 
       const bs = safeADToBS(formatUTCToIso(d));
       const [y, m] = bs.split('-').map(Number);
-      const clampedYear = Math.min(BS_MAX_YEAR, Math.max(BS_MIN_YEAR, y));
+      const clampedYear = Math.min(bsMaxYear, Math.max(bsMinYear, y));
       setBsYear(clampedYear);
       setBsMonth(m || 1);
     } catch {
-      if (bsYear >= BS_MAX_YEAR && bsMonth === 12) return;
+      if (bsYear >= bsMaxYear && bsMonth === 12) return;
       if (bsMonth === 12) {
         setBsYear((y) => y + 1);
         setBsMonth(1);
@@ -214,7 +240,7 @@ export default function Calendar({
           value={bsYear}
           onChange={(e) => {
             const year = Number(e.target.value);
-            setBsYear(Math.min(BS_MAX_YEAR, Math.max(BS_MIN_YEAR, year)));
+            setBsYear(Math.min(bsMaxYear, Math.max(bsMinYear, year)));
           }}
           className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-100"
         >
@@ -296,7 +322,7 @@ export default function Calendar({
         })}
       </div>
       <p className="mt-2 text-[10px] text-gray-500">
-        Calendar data range: {BS_MIN_YEAR} BS to {BS_MAX_YEAR} BS (updatable).
+        Calendar data range: {bsMinYear} BS to {bsMaxYear} BS (updatable).
       </p>
     </div>
   );

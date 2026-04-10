@@ -328,6 +328,23 @@ export default function AdminSettingsPage() {
                     Go to Forgot Password
                   </button>
                 </AnimatedCard>
+
+                <AnimatedCard>
+                  <h2 className="text-xl font-bold mb-4 text-white">
+                    📅 BS Calendar Data
+                  </h2>
+                  <p className="text-sm text-gray-300 mb-4">
+                    Update Nepali calendar month lengths or regenerate the full
+                    BS dataset when future dates need correction.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/admin/bs-calendar')}
+                    className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700"
+                  >
+                    Update Calendar Date Length
+                  </button>
+                </AnimatedCard>
               </div>
             </div>
           </div>
