@@ -45,7 +45,7 @@ export default function Navbar({ user }: { user?: User | null }) {
     <motion.nav
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-800 border-b border-gray-700 sticky top-0 z-40 w-full"
+      className="bg-gray-800 border-b border-gray-700 sticky top-0 z-100 w-full"
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6">
 
