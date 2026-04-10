@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ADToBS } from 'bikram-sambat-js';
+import { ADToBS } from 'datex-bs';
 
 import {
   LineChart,

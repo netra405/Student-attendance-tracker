@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ADToBS, BSToAD } from 'bikram-sambat-js';
+import { ADToBS, BSToAD } from 'datex-bs';
 
 interface CalendarProps {
   value: string;
@@ -37,6 +37,18 @@ function getLocalIso(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseIsoAsUTC(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+}
+
+function formatUTCToIso(date: Date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -109,7 +121,7 @@ export default function Calendar({
         continue;
       }
 
-      const weekday = new Date(iso).getDay();
+      const weekday = parseIsoAsUTC(iso).getUTCDay();
 
       if (firstWeekday === null) {
         firstWeekday = weekday;
@@ -135,10 +147,10 @@ export default function Calendar({
         `${bsYear}-${String(bsMonth).padStart(2, '0')}-01`
       );
 
-      const d = new Date(ad);
-      d.setMonth(d.getMonth() - 1);
+      const d = parseIsoAsUTC(ad);
+      d.setUTCMonth(d.getUTCMonth() - 1);
 
-      const bs = safeADToBS(getLocalIso(d));
+      const bs = safeADToBS(formatUTCToIso(d));
       const [y, m] = bs.split('-').map(Number);
 
       setBsYear(y);
@@ -159,10 +171,10 @@ export default function Calendar({
         `${bsYear}-${String(bsMonth).padStart(2, '0')}-01`
       );
 
-      const d = new Date(ad);
-      d.setMonth(d.getMonth() + 1);
+      const d = parseIsoAsUTC(ad);
+      d.setUTCMonth(d.getUTCMonth() + 1);
 
-      const bs = safeADToBS(getLocalIso(d));
+      const bs = safeADToBS(formatUTCToIso(d));
       const [y, m] = bs.split('-').map(Number);
 
       setBsYear(y);
