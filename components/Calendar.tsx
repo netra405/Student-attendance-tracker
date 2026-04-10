@@ -28,6 +28,8 @@ const BS_MONTHS = [
   'Chaitra',
 ];
 
+const MIN_BS_YEAR = 1977;
+const MAX_BS_YEAR = 2100;
 const START_BS_YEAR = 2082;
 const RANGE_WINDOW = 50;
 
@@ -67,7 +69,7 @@ function getInitialBs(value?: string) {
   const [y, m] = bs.split('-').map(Number);
 
   return {
-    bsYear: y || START_BS_YEAR,
+    bsYear: Math.min(MAX_BS_YEAR, Math.max(MIN_BS_YEAR, y || START_BS_YEAR)),
     bsMonth: m || 1,
   };
 }
@@ -91,8 +93,8 @@ export default function Calendar({
   /* ---------- Year Dropdown Window ---------- */
 
   const yearRange = useMemo(() => {
-    const from = Math.max(START_BS_YEAR, bsYear - RANGE_WINDOW);
-    const to = bsYear + RANGE_WINDOW;
+    const from = Math.max(MIN_BS_YEAR, bsYear - RANGE_WINDOW);
+    const to = Math.min(MAX_BS_YEAR, bsYear + RANGE_WINDOW);
 
     return Array.from(
       { length: to - from + 1 },
@@ -152,10 +154,11 @@ export default function Calendar({
 
       const bs = safeADToBS(formatUTCToIso(d));
       const [y, m] = bs.split('-').map(Number);
-
-      setBsYear(y);
+      const clampedYear = Math.min(MAX_BS_YEAR, Math.max(MIN_BS_YEAR, y));
+      setBsYear(clampedYear);
       setBsMonth(m || 1);
     } catch {
+      if (bsYear <= MIN_BS_YEAR && bsMonth === 1) return;
       if (bsMonth === 1) {
         setBsYear((y) => y - 1);
         setBsMonth(12);
@@ -176,10 +179,11 @@ export default function Calendar({
 
       const bs = safeADToBS(formatUTCToIso(d));
       const [y, m] = bs.split('-').map(Number);
-
-      setBsYear(y);
+      const clampedYear = Math.min(MAX_BS_YEAR, Math.max(MIN_BS_YEAR, y));
+      setBsYear(clampedYear);
       setBsMonth(m || 1);
     } catch {
+      if (bsYear >= MAX_BS_YEAR && bsMonth === 12) return;
       if (bsMonth === 12) {
         setBsYear((y) => y + 1);
         setBsMonth(1);
@@ -203,7 +207,10 @@ export default function Calendar({
 
         <select
           value={bsYear}
-          onChange={(e) => setBsYear(Number(e.target.value))}
+          onChange={(e) => {
+            const year = Number(e.target.value);
+            setBsYear(Math.min(MAX_BS_YEAR, Math.max(MIN_BS_YEAR, year)));
+          }}
           className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-100"
         >
           {yearRange.map((y) => (
@@ -283,6 +290,9 @@ export default function Calendar({
           );
         })}
       </div>
+      <p className="mt-2 text-[10px] text-gray-500">
+        Calendar data range: {MIN_BS_YEAR} BS to {MAX_BS_YEAR} BS (updatable).
+      </p>
     </div>
   );
 }
