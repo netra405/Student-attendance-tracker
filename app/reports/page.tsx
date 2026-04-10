@@ -30,6 +30,15 @@ const BS_MONTHS = [
   'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra',
 ];
 
+function parseIsoDateUTC(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+}
+
+function toISODateUTC(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 function adToBSFormatted(date: Date): string {
   try {
     const y = date.getFullYear();
@@ -193,7 +202,7 @@ export default function ReportsPage() {
 
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month - 1, day);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = toISODateUTC(date);
 
         let present = 0;
         let absent = 0;
@@ -276,7 +285,7 @@ export default function ReportsPage() {
               return String(recordStudentId) === String(student._id);
             })
             .map((r: any) => ({
-              date: new Date(r.date).toISOString().split('T')[0],
+              date: toISODateUTC(new Date(r.date)),
               dateBS: adToBSFormatted(new Date(r.date)),
               status: r.status
             }))
@@ -373,7 +382,7 @@ export default function ReportsPage() {
     : [];
 
   const selectedDateLabel = selectedDate
-    ? new Date(selectedDate).toLocaleString('en-NP', {
+    ? parseIsoDateUTC(selectedDate).toLocaleString('en-NP', {
       timeZone: 'Asia/Kathmandu',
       year: 'numeric',
       month: 'short',
@@ -381,7 +390,7 @@ export default function ReportsPage() {
     })
     : '';
 
-  const selectedDateBS = selectedDate ? adToBSFormatted(new Date(selectedDate)) : '';
+  const selectedDateBS = selectedDate ? adToBSFormatted(parseIsoDateUTC(selectedDate)) : '';
 
   return (
     <div className="flex h-screen bg-gray-900 overflow-hidden">
@@ -411,10 +420,10 @@ export default function ReportsPage() {
                   value={selectedDate}
                   onChange={(iso) => {
                     setSelectedDate(iso);
-                    const d = new Date(iso);
+                    const d = parseIsoDateUTC(iso);
                     if (!Number.isNaN(d.getTime())) {
-                      setMonth(d.getMonth() + 1);
-                      setYear(d.getFullYear());
+                      setMonth(d.getUTCMonth() + 1);
+                      setYear(d.getUTCFullYear());
                     }
                   }}
                   label="Select Date (Bikram Sambat)"

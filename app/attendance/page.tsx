@@ -20,6 +20,11 @@ interface Student {
 
 type AttendanceStatus = 'present' | 'absent' | 'leave';
 
+function parseIsoDateUTC(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+}
+
 export default function AttendancePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -92,9 +97,9 @@ export default function AttendancePage() {
   // Load attendance for selected date (past or future) so user can see results
   useEffect(() => {
     if (!session?.user || !selectedDate) return;
-    const d = new Date(selectedDate);
-    const month = d.getMonth() + 1;
-    const year = d.getFullYear();
+    const d = parseIsoDateUTC(selectedDate);
+    const month = d.getUTCMonth() + 1;
+    const year = d.getUTCFullYear();
     const effectiveClass = selectedClass || 'all';
     const classParam =
       effectiveClass && effectiveClass !== 'all'
