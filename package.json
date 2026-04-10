@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "generate:bs-data": "node scripts/generate-bs-calendar-data.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.5.0",
