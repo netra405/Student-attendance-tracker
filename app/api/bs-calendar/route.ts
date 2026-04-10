@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { BSCalendarData } from '@/lib/bsCalendarGenerator';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const DATA_FILE = join(process.cwd(), 'data', 'bs-calendar-data.json');
 
 export async function GET() {

@@ -129,7 +129,7 @@ export default function Calendar({
       { length: to - from + 1 },
       (_, i) => from + i
     );
-  }, [bsYear]);
+  }, [bsYear, bsMinYear, bsMaxYear]);
 
   /* ---------- Calendar Grid ---------- */
 
@@ -137,40 +137,31 @@ export default function Calendar({
     const result: Array<{ day: number | null; iso?: string }> = [];
     const months = monthLengthsByYear[String(bsYear)];
     const daysInMonth = months?.[bsMonth - 1] ?? 32;
+    const firstBsDate = `${bsYear}-${String(bsMonth).padStart(2, '0')}-01`;
+    let firstIso: string;
+    try {
+      firstIso = BSToAD(firstBsDate);
+    } catch {
+      const monthLabel = `${BS_MONTHS[bsMonth - 1]} ${bsYear} (BS)`;
+      return { days: result, monthLabel };
+    }
 
-    let firstWeekday: number | null = null;
+    const firstDateUtc = parseIsoAsUTC(firstIso);
+    const firstWeekday = firstDateUtc.getUTCDay();
+    for (let i = 0; i < firstWeekday; i++) {
+      result.push({ day: null });
+    }
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const bsDate = `${bsYear}-${String(bsMonth).padStart(
-        2,
-        '0'
-      )}-${String(day).padStart(2, '0')}`;
-
-      let iso;
-
-      try {
-        iso = BSToAD(bsDate);
-      } catch {
-        continue;
-      }
-
-      const weekday = parseIsoAsUTC(iso).getUTCDay();
-
-      if (firstWeekday === null) {
-        firstWeekday = weekday;
-
-        for (let i = 0; i < firstWeekday; i++) {
-          result.push({ day: null });
-        }
-      }
-
-      result.push({ day, iso });
+      const dayDateUtc = new Date(firstDateUtc);
+      dayDateUtc.setUTCDate(firstDateUtc.getUTCDate() + (day - 1));
+      result.push({ day, iso: formatUTCToIso(dayDateUtc) });
     }
 
     const monthLabel = `${BS_MONTHS[bsMonth - 1]} ${bsYear} (BS)`;
 
     return { days: result, monthLabel };
-  }, [bsYear, bsMonth]);
+  }, [bsYear, bsMonth, monthLengthsByYear]);
 
   /* ---------- Navigation ---------- */
 
