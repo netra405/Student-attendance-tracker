@@ -7,8 +7,6 @@ import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Menu } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { toggleSidebar } from '@/store/uiSlice';
 
 interface User {
   name?: string | null;
@@ -19,7 +17,6 @@ interface User {
 export default function Navbar({ user }: { user?: User | null }) {
 
   const router = useRouter();
-  const dispatch = useDispatch();
 
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -57,7 +54,7 @@ export default function Navbar({ user }: { user?: User | null }) {
             {/* Mobile Sidebar Toggle */}
             <button
               className="md:hidden text-white"
-              onClick={() => dispatch(toggleSidebar())}
+              onClick={() => window.dispatchEvent(new Event('open-mobile-sidebar'))}
             >
               <Menu size={24} />
             </button>

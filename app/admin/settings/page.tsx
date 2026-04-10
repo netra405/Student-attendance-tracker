@@ -160,191 +160,218 @@ export default function AdminSettingsPage() {
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen">
       <Navbar user={session?.user} />
-      <div className='flex'>
+      <div className='flex min-h-[calc(100vh-64px)]'>
         <Sidebar />
-        <div className='flex-1'>
-          <div className="bg-gray-900 min-h-screen">
-            <div className='max-w-4xl mx-auto p-6'>
+        <div className='flex-1 min-w-0'>
+          <div className="bg-gray-900 min-h-full">
+            <div className='max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6'>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className='mb-8'
+                className='rounded-2xl border border-gray-800 bg-linear-to-r from-gray-900 via-gray-900 to-gray-800 p-6'
               >
-                <h1 className="text-4xl font-bold text-white">
-                  Admin Settings
-                </h1>
-                <p className="mt-2 text-gray-300">
-                  Manage your account details and security
-                </p>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-blue-400">
+                      Security Center
+                    </p>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-white mt-1">
+                      Admin Settings
+                    </h1>
+                    <p className="mt-2 text-gray-300 text-sm sm:text-base">
+                      Manage login security, recovery options, and profile verification.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg border border-green-700/60 bg-green-900/20 px-3 py-2 text-green-300">
+                      Email: {session?.user?.email ? 'Connected' : 'Not set'}
+                    </div>
+                    <div className="rounded-lg border border-blue-700/60 bg-blue-900/20 px-3 py-2 text-blue-300">
+                      Auth: Password + OTP
+                    </div>
+                  </div>
+                </div>
               </motion.div>
 
-      {error && (
+              {error && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-              className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6'
+                  className='bg-red-900/40 border border-red-700 text-red-100 px-4 py-3 rounded-xl'
                 >
                   {error}
                 </motion.div>
               )}
 
-      {success && (
+              {success && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-              className='bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6'
+                  className='bg-green-900/40 border border-green-700 text-green-100 px-4 py-3 rounded-xl'
                 >
                   {success}
                 </motion.div>
               )}
 
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                {/* Change Email */}
-                <AnimatedCard>
-                  <h2 className="text-xl font-bold mb-4 text-white">
-                    ✉️ Change Email
-                  </h2>
+              <div className='grid grid-cols-1 xl:grid-cols-3 gap-6'>
+                <div className="xl:col-span-2 space-y-6">
+                  <AnimatedCard className="rounded-2xl border-gray-700/70">
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div>
+                        <h2 className="text-xl font-bold text-white">
+                          Email & Verification
+                        </h2>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Update your login email and verify ownership with OTP.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-blue-900/30 border border-blue-700/60 px-3 py-1 text-xs text-blue-300">
+                        Recommended
+                      </span>
+                    </div>
 
-                  {verification.step === 'verify' &&
-                  verification.action === 'change-email' ? (
-                    <form onSubmit={handleVerifyEmail} className='space-y-4'>
-                      <p className="text-sm text-gray-300">
-                        Enter the verification code sent to your new email
-                      </p>
+                    {verification.step === 'verify' &&
+                    verification.action === 'change-email' ? (
+                      <form onSubmit={handleVerifyEmail} className='space-y-4'>
+                        <p className="text-sm text-gray-300">
+                          Enter the 6-digit verification code sent to your new email.
+                        </p>
+                        <input
+                          type='text'
+                          value={verificationCode}
+                          onChange={(e) =>
+                            setVerificationCode(e.target.value.slice(0, 6))
+                          }
+                          maxLength={6}
+                          className="w-full px-4 py-3 border rounded-xl text-center text-2xl tracking-[0.35em] bg-gray-900 border-gray-700 text-gray-100"
+                          placeholder='000000'
+                          required
+                        />
+                        <button
+                          type='submit'
+                          disabled={loading}
+                          className='w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 font-medium'
+                        >
+                          {loading ? 'Verifying...' : 'Verify New Email'}
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleChangeEmail} className='space-y-4'>
+                        <div className="rounded-xl border border-gray-700 bg-gray-900 p-3 text-sm text-gray-300">
+                          Current email: <span className="text-white">{session?.user?.email}</span>
+                        </div>
+                        <input
+                          type='email'
+                          value={emailForm.newEmail}
+                          onChange={(e) =>
+                            setEmailForm({ newEmail: e.target.value })
+                          }
+                          className="w-full px-4 py-3 border rounded-xl bg-gray-900 border-gray-700 text-gray-100"
+                          placeholder='New email address'
+                          required
+                        />
+                        <button
+                          type='submit'
+                          disabled={loading}
+                          className='w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 font-medium'
+                        >
+                          {loading ? 'Sending code...' : 'Send Verification Code'}
+                        </button>
+                      </form>
+                    )}
+                  </AnimatedCard>
+
+                  <AnimatedCard className="rounded-2xl border-gray-700/70">
+                    <h2 className="text-xl font-bold mb-1 text-white">
+                      Password Security
+                    </h2>
+                    <p className="text-sm text-gray-400 mb-5">
+                      Use a strong password and update it regularly.
+                    </p>
+                    <form onSubmit={handleChangePassword} className='space-y-4'>
                       <input
-                        type='text'
-                        value={verificationCode}
+                        type='password'
+                        value={passwordForm.currentPassword}
                         onChange={(e) =>
-                          setVerificationCode(e.target.value.slice(0, 6))
+                          setPasswordForm({
+                            ...passwordForm,
+                            currentPassword: e.target.value,
+                          })
                         }
-                        maxLength={6}
-                        className="w-full px-4 py-2 border rounded-lg text-center text-2xl tracking-widest bg-gray-800 border-gray-700 text-gray-100"
-                        placeholder='000000'
+                        className="w-full px-4 py-3 border rounded-xl bg-gray-900 border-gray-700 text-gray-100"
+                        placeholder='Current password'
+                        required
+                      />
+                      <input
+                        type='password'
+                        value={passwordForm.newPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            newPassword: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 border rounded-xl bg-gray-900 border-gray-700 text-gray-100"
+                        placeholder='New password (min 6 chars)'
+                        required
+                      />
+                      <input
+                        type='password'
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            confirmPassword: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 border rounded-xl bg-gray-900 border-gray-700 text-gray-100"
+                        placeholder='Confirm new password'
                         required
                       />
                       <button
                         type='submit'
                         disabled={loading}
-                        className='w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50'
+                        className='w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 disabled:opacity-50 font-medium'
                       >
-                        {loading ? 'Verifying...' : 'Verify Email'}
+                        {loading ? 'Updating...' : 'Update Password'}
                       </button>
                     </form>
-                  ) : (
-                    <form onSubmit={handleChangeEmail} className='space-y-4'>
-                      <input
-                        type='email'
-                        value={emailForm.newEmail}
-                        onChange={(e) =>
-                          setEmailForm({ newEmail: e.target.value })
-                        }
-                        className="w-full px-4 py-2 border rounded-lg bg-gray-800 border-gray-700 text-gray-100"
-                        placeholder='New email address'
-                        required
-                      />
-                      <p className="text-sm text-gray-300">
-                        Current: {session?.user?.email}
-                      </p>
-                      <button
-                        type='submit'
-                        disabled={loading}
-                        className='w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50'
-                      >
-                        {loading ? 'Sending code...' : 'Change Email'}
-                      </button>
-                    </form>
-                  )}
-                </AnimatedCard>
+                  </AnimatedCard>
+                </div>
 
-                {/* Change Password */}
-                <AnimatedCard>
-                  <h2 className="text-xl font-bold mb-4 text-white">
-                    🔐 Change Password
-                  </h2>
-                  <form onSubmit={handleChangePassword} className='space-y-4'>
-                    <input
-                      type='password'
-                      value={passwordForm.currentPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          currentPassword: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border rounded-lg bg-gray-800 border-gray-700 text-gray-100"
-                      placeholder='Current password'
-                      required
-                    />
-                    <input
-                      type='password'
-                      value={passwordForm.newPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          newPassword: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border rounded-lg bg-gray-800 border-gray-700 text-gray-100"
-                      placeholder='New password (min 6 chars)'
-                      required
-                    />
-                    <input
-                      type='password'
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border rounded-lg bg-gray-800 border-gray-700 text-gray-100"
-                      placeholder='Confirm new password'
-                      required
-                    />
+                <div className="space-y-6">
+                  <AnimatedCard className="rounded-2xl border-gray-700/70">
+                    <h2 className="text-lg font-semibold mb-3 text-white">
+                      Account Recovery
+                    </h2>
+                    <p className="text-sm text-gray-300 mb-4">
+                      If you forget the admin password, use email recovery to reset securely.
+                    </p>
                     <button
-                      type='submit'
-                      disabled={loading}
-                      className='w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50'
+                      type="button"
+                      onClick={() => router.push('/forgot-password')}
+                      className="w-full bg-purple-600 text-white py-2.5 rounded-xl hover:bg-purple-700"
                     >
-                      {loading ? 'Updating...' : 'Update Password'}
+                      Open Password Recovery
                     </button>
-                  </form>
-                </AnimatedCard>
+                  </AnimatedCard>
 
-                {/* Forgot Password helper */}
-                <AnimatedCard>
-                  <h2 className="text-xl font-bold mb-4 text-white">
-                    ❓ Forgot Password
-                  </h2>
-                  <p className="text-sm text-gray-300 mb-4">
-                    If you ever forget your admin password, you can reset it
-                    using the email‑based reset flow.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/forgot-password')}
-                    className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
-                  >
-                    Go to Forgot Password
-                  </button>
-                </AnimatedCard>
-
-                <AnimatedCard>
-                  <h2 className="text-xl font-bold mb-4 text-white">
-                    📅 BS Calendar Data
-                  </h2>
-                  <p className="text-sm text-gray-300 mb-4">
-                    Update Nepali calendar month lengths or regenerate the full
-                    BS dataset when future dates need correction.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/admin/bs-calendar')}
-                    className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700"
-                  >
-                    Update Calendar Date Length
-                  </button>
-                </AnimatedCard>
+                  <AnimatedCard className="rounded-2xl border-gray-700/70">
+                    <h2 className="text-lg font-semibold mb-3 text-white">
+                      BS Calendar Data
+                    </h2>
+                    <p className="text-sm text-gray-300 mb-4">
+                      Regenerate BS data or manually adjust month lengths for future year accuracy.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/admin/bs-calendar')}
+                      className="w-full bg-indigo-600 text-white py-2.5 rounded-xl hover:bg-indigo-700"
+                    >
+                      Manage Calendar Dataset
+                    </button>
+                  </AnimatedCard>
+                </div>
               </div>
             </div>
           </div>

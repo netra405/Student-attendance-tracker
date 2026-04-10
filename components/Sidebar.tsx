@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '@/store';
 import { toggleSidebar } from '@/store/uiSlice';
@@ -18,20 +19,28 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const dispatch = useDispatch();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isOpen = useSelector(
     (state: RootState) => state.ui.sidebarOpen
   );
 
+  useEffect(() => {
+    const openDrawer = () => setMobileOpen(true);
+    const closeDrawer = () => setMobileOpen(false);
+    window.addEventListener('open-mobile-sidebar', openDrawer);
+    window.addEventListener('close-mobile-sidebar', closeDrawer);
+    return () => {
+      window.removeEventListener('open-mobile-sidebar', openDrawer);
+      window.removeEventListener('close-mobile-sidebar', closeDrawer);
+    };
+  }, []);
+
   return (
     <>
       {/* Desktop Sidebar */}
       <motion.aside
-        className="
-        hidden md:flex
-        bg-gray-900 border-r border-gray-800
-        h-screen sticky top-0 z-40 flex-col
-        "
+        className="hidden md:flex bg-gray-900 border-r border-gray-800 h-screen sticky top-0 z-40 flex-col"
         animate={{ width: isOpen ? 260 : 80 }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
       >
@@ -74,7 +83,7 @@ export default function Sidebar() {
 
       {/* Mobile Sidebar Drawer */}
       <AnimatePresence>
-        {isOpen && (
+        {mobileOpen && (
           <>
             {/* Overlay */}
             <motion.div
@@ -82,7 +91,7 @@ export default function Sidebar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => dispatch(toggleSidebar())}
+              onClick={() => setMobileOpen(false)}
             />
 
             {/* Drawer */}
@@ -94,7 +103,7 @@ export default function Sidebar() {
               transition={{ duration: 0.25 }}
             >
               <button
-                onClick={() => dispatch(toggleSidebar())}
+                onClick={() => setMobileOpen(false)}
                 className="mb-6 text-white text-xl"
               >
                 ✕ Close
@@ -115,7 +124,7 @@ export default function Sidebar() {
                             : 'text-gray-300 hover:bg-gray-800'
                         }
                         `}
-                        onClick={() => dispatch(toggleSidebar())}
+                        onClick={() => setMobileOpen(false)}
                       >
                         <span className="text-xl">{item.icon}</span>
                         <span>{item.label}</span>
